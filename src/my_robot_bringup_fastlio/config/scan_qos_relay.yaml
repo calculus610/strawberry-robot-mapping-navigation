@@ -1,0 +1,6 @@
+scan_qos_relay:
+  ros__parameters:
+    input_topic: /scan_raw
+    output_topic: /scan
+    input_queue_depth: 20
+    output_queue_depth: 20
