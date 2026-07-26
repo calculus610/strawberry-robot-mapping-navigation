@@ -6,7 +6,7 @@ amcl:
     alpha3: 0.2  #里程计的翻译估计中来自translation的预期过程噪声
     alpha4: 0.4  #里程计的平移估计中因旋转而产生的预期过程噪声
     alpha5: 0.2  #仅适用于 Omni 型号：translation噪音
-    base_frame_id: "base_footprint" #机器人底座框架 
+    base_frame_id: "fastlio_base_footprint" # FAST-LIO 建图专用底座框架
     introspection_mode: "disabled" #启用调试模式，这将发布额外的调试信息 
     beam_skip_distance: 0.5         #忽略似然场模型中大多数粒子不同意的光束。考虑跳过的最大距离（米）
     beam_skip_error_threshold: 0.9  #由于收敛性不好，未匹配地图后强制进行完全更新的光束百分比
@@ -66,7 +66,7 @@ bt_navigator:
     transform_tolerance: 0.1 #变换容差
     goal_reached_tol: 0.25 #接受姿势作为目标的容忍度(m)
     global_frame: map
-    robot_base_frame: base_footprint
+    robot_base_frame: fastlio_base_footprint
     odom_topic: /odom
     bt_loop_duration: 10        #BT 执行每次迭代的持续时间（以毫秒为单位
     default_server_timeout: 20  #BT 操作节点等待操作服务器确认时的默认超时值（以毫秒为单位）
@@ -210,7 +210,7 @@ local_costmap:
       update_frequency: 5.0    #成本地图更新频率
       publish_frequency: 2.0   #将成本图发布到话题的频率
       global_frame: camera_init       #FAST-LIO局部连续里程计框架
-      robot_base_frame: base_footprint  #机器人底座框架
+      robot_base_frame: fastlio_base_footprint  # FAST-LIO 建图专用底座框架
       use_sim_time: False  #仿真时间
       rolling_window: true #成本地图是否应随机器人基座框架滚动
       width: 3             #代价地图的宽度（m）
@@ -257,7 +257,7 @@ global_costmap:
       update_frequency: 1.0             #成本地图更新频率
       publish_frequency: 1.0            #将成本图发布到话题的频率
       global_frame: map                 #全局框架
-      robot_base_frame: base_footprint  #机器人底座框架
+      robot_base_frame: fastlio_base_footprint  # FAST-LIO 建图专用底座框架
       use_sim_time: False               #仿真时间 
       #robot_radius: 0.20                #机器人半径
       footprint: "[ [-0.09, -0.185], [-0.09, 0.185], [0.4,0.185], [0.4, -0.185] ]"
@@ -379,7 +379,7 @@ smoother_server:
 #     wait:
 #       plugin: "nav2_behaviors/Wait"
 #     global_frame: map
-#     robot_base_frame: base_footprint
+#     robot_base_frame: fastlio_base_footprint
 #     transform_tolerance: 0.1 #TF 变换容差
 #     use_sim_time: False
 #     simulate_ahead_time: 2.0 #提前模拟

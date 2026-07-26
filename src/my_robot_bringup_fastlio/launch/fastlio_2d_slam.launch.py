@@ -46,38 +46,46 @@ def generate_launch_description():
 
     body_to_base_x_arg = DeclareLaunchArgument(
         'body_to_base_x',
-        default_value='0.0',
-        description='Static TF X offset from FAST-LIO body to base_footprint',
+        default_value='-0.188',
+        description=(
+            'X coordinate of fastlio_base_footprint in FAST-LIO body frame. '
+            'The MID360 body is mounted 0.188 m in front of the base origin, '
+            'so the inverse body->base transform is -0.188 m.'
+        ),
     )
 
     body_to_base_y_arg = DeclareLaunchArgument(
         'body_to_base_y',
         default_value='0.0',
-        description='Static TF Y offset from FAST-LIO body to base_footprint',
+        description='Static TF Y offset from FAST-LIO body to fastlio_base_footprint',
     )
 
     body_to_base_z_arg = DeclareLaunchArgument(
         'body_to_base_z',
-        default_value='0.0',
-        description='Static TF Z offset from FAST-LIO body to base_footprint',
+        default_value='-0.25',
+        description=(
+            'Z coordinate of fastlio_base_footprint in FAST-LIO body frame. '
+            'The MID360 body is mounted 0.25 m above the base origin, '
+            'so the inverse body->base transform is -0.25 m.'
+        ),
     )
 
     body_to_base_roll_arg = DeclareLaunchArgument(
         'body_to_base_roll',
         default_value='0.0',
-        description='Static TF roll offset from FAST-LIO body to base_footprint',
+        description='Static TF roll offset from FAST-LIO body to fastlio_base_footprint',
     )
 
     body_to_base_pitch_arg = DeclareLaunchArgument(
         'body_to_base_pitch',
         default_value='0.0',
-        description='Static TF pitch offset from FAST-LIO body to base_footprint',
+        description='Static TF pitch offset from FAST-LIO body to fastlio_base_footprint',
     )
 
     body_to_base_yaw_arg = DeclareLaunchArgument(
         'body_to_base_yaw',
         default_value='0.0',
-        description='Static TF yaw offset from FAST-LIO body to base_footprint',
+        description='Static TF yaw offset from FAST-LIO body to fastlio_base_footprint',
     )
 
     fastlio_bringup = IncludeLaunchDescription(
@@ -98,7 +106,7 @@ def generate_launch_description():
     body_to_base_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        name='body_to_base_footprint_tf',
+        name='body_to_fastlio_base_footprint_tf',
         output='screen',
         arguments=[
             '--x', LaunchConfiguration('body_to_base_x'),
@@ -108,7 +116,7 @@ def generate_launch_description():
             '--pitch', LaunchConfiguration('body_to_base_pitch'),
             '--yaw', LaunchConfiguration('body_to_base_yaw'),
             '--frame-id', 'body',
-            '--child-frame-id', 'base_footprint',
+            '--child-frame-id', 'fastlio_base_footprint',
         ],
     )
 

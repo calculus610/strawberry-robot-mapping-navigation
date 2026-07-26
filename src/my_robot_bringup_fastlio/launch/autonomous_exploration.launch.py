@@ -30,8 +30,8 @@ def generate_launch_description():
 
     start_rviz_arg = DeclareLaunchArgument(
         'start_rviz',
-        default_value='true',
-        description='Launch RViz together with mapping',
+        default_value='false',
+        description='Launch RViz together with mapping (disabled by default for stability)',
     )
 
     rviz_config_arg = DeclareLaunchArgument(
@@ -96,14 +96,17 @@ def generate_launch_description():
 
     explorer_start_delay_arg = DeclareLaunchArgument(
         'explorer_start_delay',
-        default_value='18.0',
+        default_value='30.0',
         description='Delay before frontier exploration starts, in seconds',
     )
 
     start_base_arg = DeclareLaunchArgument(
         'start_base',
-        default_value='true',
-        description='Launch Wheeltec chassis driver',
+        default_value='false',
+        description=(
+            'Launch a local Wheeltec chassis driver. Keep false when the shared '
+            'robot-base.service is active.'
+        ),
     )
 
     car_mode_arg = DeclareLaunchArgument(
@@ -126,38 +129,38 @@ def generate_launch_description():
 
     body_to_base_x_arg = DeclareLaunchArgument(
         'body_to_base_x',
-        default_value='0.0',
-        description='Static TF X offset from FAST-LIO body to base_footprint',
+        default_value='-0.188',
+        description='X coordinate of fastlio_base_footprint in body frame (inverse of the MID360 forward mounting offset)',
     )
 
     body_to_base_y_arg = DeclareLaunchArgument(
         'body_to_base_y',
         default_value='0.0',
-        description='Static TF Y offset from FAST-LIO body to base_footprint',
+        description='Static TF Y offset from FAST-LIO body to fastlio_base_footprint',
     )
 
     body_to_base_z_arg = DeclareLaunchArgument(
         'body_to_base_z',
-        default_value='0.0',
-        description='Static TF Z offset from FAST-LIO body to base_footprint',
+        default_value='-0.25',
+        description='Z coordinate of fastlio_base_footprint in body frame (inverse of the MID360 upward mounting offset)',
     )
 
     body_to_base_roll_arg = DeclareLaunchArgument(
         'body_to_base_roll',
         default_value='0.0',
-        description='Static TF roll offset from FAST-LIO body to base_footprint',
+        description='Static TF roll offset from FAST-LIO body to fastlio_base_footprint',
     )
 
     body_to_base_pitch_arg = DeclareLaunchArgument(
         'body_to_base_pitch',
         default_value='0.0',
-        description='Static TF pitch offset from FAST-LIO body to base_footprint',
+        description='Static TF pitch offset from FAST-LIO body to fastlio_base_footprint',
     )
 
     body_to_base_yaw_arg = DeclareLaunchArgument(
         'body_to_base_yaw',
         default_value='0.0',
-        description='Static TF yaw offset from FAST-LIO body to base_footprint',
+        description='Static TF yaw offset from FAST-LIO body to fastlio_base_footprint',
     )
 
     autonomous_mapping_launch = IncludeLaunchDescription(

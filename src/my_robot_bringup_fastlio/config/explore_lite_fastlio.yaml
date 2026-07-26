@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
-    robot_base_frame: base_footprint
+    robot_base_frame: fastlio_base_footprint
     return_to_init: false
     costmap_topic: /map
     costmap_updates_topic: /map_updates
@@ -10,5 +10,6 @@
     potential_scale: 8.0
     orientation_scale: 0.0
     gain_scale: 0.8
-    transform_tolerance: 0.5
+    # 查询稍早时刻的机器人位姿，避免 map->camera_init 处理延迟造成未来外推。
+    transform_tolerance: 2.0
     min_frontier_size: 1.0

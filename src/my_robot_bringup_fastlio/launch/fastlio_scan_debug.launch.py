@@ -1,13 +1,29 @@
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, TimerAction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
     bringup_share = FindPackageShare('my_robot_bringup_fastlio')
+
+    body_to_base_x_arg = DeclareLaunchArgument(
+        'body_to_base_x',
+        default_value='-0.188',
+        description='X coordinate of fastlio_base_footprint in body frame',
+    )
+    body_to_base_y_arg = DeclareLaunchArgument(
+        'body_to_base_y',
+        default_value='0.0',
+        description='Y coordinate of fastlio_base_footprint in body frame',
+    )
+    body_to_base_z_arg = DeclareLaunchArgument(
+        'body_to_base_z',
+        default_value='-0.25',
+        description='Z coordinate of fastlio_base_footprint in body frame',
+    )
 
     livox_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -37,17 +53,17 @@ def generate_launch_description():
     body_to_base_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        name='body_to_base_footprint_tf',
+        name='body_to_fastlio_base_footprint_tf',
         output='screen',
         arguments=[
-            '--x', '0.0',
-            '--y', '0.0',
-            '--z', '0.0',
+            '--x', LaunchConfiguration('body_to_base_x'),
+            '--y', LaunchConfiguration('body_to_base_y'),
+            '--z', LaunchConfiguration('body_to_base_z'),
             '--roll', '0.0',
             '--pitch', '0.0',
             '--yaw', '0.0',
             '--frame-id', 'body',
-            '--child-frame-id', 'base_footprint',
+            '--child-frame-id', 'fastlio_base_footprint',
         ],
     )
 
@@ -61,7 +77,7 @@ def generate_launch_description():
             ('scan', '/scan'),
         ],
         parameters=[{
-            'target_frame': 'base_footprint',
+            'target_frame': 'fastlio_base_footprint',
             'transform_tolerance': 0.2,
             'min_height': -0.5,
             'max_height': 0.8,
@@ -88,6 +104,9 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        body_to_base_x_arg,
+        body_to_base_y_arg,
+        body_to_base_z_arg,
         livox_launch,
         body_to_base_tf,
         TimerAction(

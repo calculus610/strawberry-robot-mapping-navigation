@@ -244,6 +244,14 @@ void turn_on_robot::Cmd_Vel_Callback(const geometry_msgs::msg::Twist::SharedPtr 
   //避障配置
   geometry_msgs::msg::Twist avoid_twist = avoid_obstacle(*ori_twist_aux);
 
+  // Keep a low-rate trace of what is actually sent to the STM32. This is
+  // especially useful when Nav2 publishes correctly but the chassis does not
+  // move. The throttle avoids flooding the embedded computer's terminal.
+  RCLCPP_INFO_THROTTLE(
+    this->get_logger(), *this->get_clock(), 2000,
+    "send cmd_vel: linear.x=%.3f linear.y=%.3f angular.z=%.3f",
+    avoid_twist.linear.x, avoid_twist.linear.y, avoid_twist.angular.z);
+
   //The target velocity of the X-axis of the robot
   //机器人x轴的目标线速度
   transition=0;
@@ -727,7 +735,14 @@ bool turn_on_robot::Get_Sensor_Data_New()
   uint8_t check=0,check2=0,check3=0, error=1,error2=1,error3=1,Receive_Data_Pr[1]; //Temporary variable to save the data of the lower machine //临时变量，保存下位机数据
   static int count,count2,count3; //Static variable for counting //静态变量，用于计数
   static uint8_t Last_Receive;
-  Stm32_Serial.read(Receive_Data_Pr,sizeof(Receive_Data_Pr)); //Read the data sent by the lower computer through the serial port //通过串口读取下位机发送过来的数据
+  // A timeout is normal between two feedback frames. Do not feed an
+  // uninitialised/stale byte into the frame state machine when no byte was
+  // actually received, otherwise the 7B ... 7D frame boundary is lost.
+  if (Stm32_Serial.read(Receive_Data_Pr, sizeof(Receive_Data_Pr)) !=
+      sizeof(Receive_Data_Pr))
+  {
+    return false;
+  }
 
   Receive_Data.rx[count] = Receive_Data_Pr[0]; //Fill the array with serial data //串口数据填入数组
   Receive_AutoCharge_Data.rx[count3] = Receive_Data_Pr[0];
@@ -1059,7 +1074,11 @@ turn_on_robot::turn_on_robot():rclcpp::Node ("wheeltec_robot")
     //Attempts to initialize and open the serial port //尝试初始化与开启串口
     Stm32_Serial.setPort(usart_port_name); //Select the serial port number to enable //选择要开启的串口号
     Stm32_Serial.setBaudrate(serial_baud_rate); //Set the baud rate //设置波特率
-    serial::Timeout _time = serial::Timeout::simpleTimeout(2000); //Timeout //超时等待
+    // The ROS callbacks are serviced after each serial read in Control(). A
+    // 2000 ms timeout starves /cmd_vel whenever the new chassis does not send
+    // the legacy feedback frame, causing the MCU watchdog to stop the robot.
+    // Keep the read timeout short so velocity commands are handled promptly.
+    serial::Timeout _time = serial::Timeout::simpleTimeout(20);
     Stm32_Serial.setTimeout(_time);
     Stm32_Serial.open(); //Open the serial port //开启串口
     Stm32_Serial.flushInput();

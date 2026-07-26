@@ -44,7 +44,10 @@ def include_imu_launch(context, *args, **kwargs):
 
     # 公共参数
     common_params = {
-        'usart_port_name': '/dev/ttyTHS1',
+        # Use the persistent udev name for the Wheeltec chassis controller.
+        # /dev/ttyTHS1 is the Jetson onboard UART and produced no chassis
+        # feedback on this robot.
+        'usart_port_name': '/dev/wheeltec_controller',
         'serial_baud_rate': 115200,
         'robot_frame_id': 'base_footprint',
         'odom_frame_id': 'odom_combined',
@@ -84,6 +87,12 @@ def include_imu_launch(context, *args, **kwargs):
         package='turn_on_wheeltec_robot',
         executable='wheeltec_robot_node',
         output='screen',
+        # A transient USB serial disconnect used to leave the outer ros2 launch
+        # process alive while the actual chassis driver was dead.  Respawn the
+        # driver so /cmd_vel and chassis feedback recover without a stale,
+        # misleadingly-active launch process.
+        respawn=True,
+        respawn_delay=2.0,
         parameters=[common_params],
         remappings=remappings,
     )

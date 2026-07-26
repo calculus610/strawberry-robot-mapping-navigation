@@ -1,6 +1,11 @@
 build/
 install/
 log/
+devel/
+
+# Robot runtime data and remote sync recovery copies
+maps/
+.robot-sync-backups/
 
 .cache/
 .colcon/
@@ -27,14 +32,10 @@ Makefile
 .vscode/
 .idea/
 .claude/
+.codex/
+.robot.env
 .DS_Store
 ._*
 *~
 *.swp
 *.swo
-
-libapr1-dev
-libpcl-dev
-python3-colcon-common-extensions
-python3-rosdep
-ros-humble-*

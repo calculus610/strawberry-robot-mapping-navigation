@@ -3,6 +3,7 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
+from nav2_common.launch import RewrittenYaml
 
 
 def generate_launch_description():
@@ -42,6 +43,24 @@ def generate_launch_description():
         description='Nav2 log level',
     )
 
+    configured_params = RewrittenYaml(
+        source_file=LaunchConfiguration('params_file'),
+        root_key=None,
+        param_rewrites={
+            'default_nav_to_pose_bt_xml': PathJoinSubstitution([
+                bringup_share,
+                'behavior_trees',
+                'navigate_to_pose_no_spin.xml',
+            ]),
+            'default_nav_through_poses_bt_xml': PathJoinSubstitution([
+                bringup_share,
+                'behavior_trees',
+                'navigate_through_poses_no_spin.xml',
+            ]),
+        },
+        convert_types=True,
+    )
+
     nav2_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([
@@ -52,7 +71,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time'),
-            'params_file': LaunchConfiguration('params_file'),
+            'params_file': configured_params,
             'autostart': LaunchConfiguration('autostart'),
             'use_respawn': LaunchConfiguration('use_respawn'),
             'log_level': LaunchConfiguration('log_level'),

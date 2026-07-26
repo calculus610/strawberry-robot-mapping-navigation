@@ -79,8 +79,11 @@ def generate_launch_description():
 
     start_base_arg = DeclareLaunchArgument(
         'start_base',
-        default_value='true',
-        description='Launch Wheeltec chassis driver',
+        default_value='false',
+        description=(
+            'Launch a local Wheeltec chassis driver. Keep false when the shared '
+            'robot-base.service is active.'
+        ),
     )
 
     car_mode_arg = DeclareLaunchArgument(
@@ -103,38 +106,38 @@ def generate_launch_description():
 
     body_to_base_x_arg = DeclareLaunchArgument(
         'body_to_base_x',
-        default_value='0.0',
-        description='Static TF X offset from FAST-LIO body to base_footprint',
+        default_value='-0.188',
+        description='X coordinate of fastlio_base_footprint in body frame (inverse of the MID360 forward mounting offset)',
     )
 
     body_to_base_y_arg = DeclareLaunchArgument(
         'body_to_base_y',
         default_value='0.0',
-        description='Static TF Y offset from FAST-LIO body to base_footprint',
+        description='Static TF Y offset from FAST-LIO body to fastlio_base_footprint',
     )
 
     body_to_base_z_arg = DeclareLaunchArgument(
         'body_to_base_z',
-        default_value='0.0',
-        description='Static TF Z offset from FAST-LIO body to base_footprint',
+        default_value='-0.25',
+        description='Z coordinate of fastlio_base_footprint in body frame (inverse of the MID360 upward mounting offset)',
     )
 
     body_to_base_roll_arg = DeclareLaunchArgument(
         'body_to_base_roll',
         default_value='0.0',
-        description='Static TF roll offset from FAST-LIO body to base_footprint',
+        description='Static TF roll offset from FAST-LIO body to fastlio_base_footprint',
     )
 
     body_to_base_pitch_arg = DeclareLaunchArgument(
         'body_to_base_pitch',
         default_value='0.0',
-        description='Static TF pitch offset from FAST-LIO body to base_footprint',
+        description='Static TF pitch offset from FAST-LIO body to fastlio_base_footprint',
     )
 
     body_to_base_yaw_arg = DeclareLaunchArgument(
         'body_to_base_yaw',
         default_value='0.0',
-        description='Static TF yaw offset from FAST-LIO body to base_footprint',
+        description='Static TF yaw offset from FAST-LIO body to fastlio_base_footprint',
     )
 
     wheeltec_base_launch = IncludeLaunchDescription(
