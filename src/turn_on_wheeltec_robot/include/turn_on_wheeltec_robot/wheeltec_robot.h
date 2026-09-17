@@ -3,6 +3,7 @@
 #define __WHEELTEC_ROBOT_H_
 
 #include <iostream>
+#include <chrono>
 #include <string.h>
 #include <string> 
 #include <iostream>
@@ -206,6 +207,7 @@ class turn_on_robot : public rclcpp::Node
 		rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr arm_cmd_Sub;
 
 		rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr Cmd_Vel_Sub;//Initialize the topic subscriber //初始化话题订阅者
+		rclcpp::TimerBase::SharedPtr Cmd_Vel_Watchdog_Timer;
    
 		rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr AvoidFlag_Sub;
 
@@ -241,6 +243,8 @@ class turn_on_robot : public rclcpp::Node
 		//The speed topic subscribes to the callback function
 		//速度话题订阅回调函数
         void Cmd_Vel_Callback(const geometry_msgs::msg::Twist::SharedPtr twist_aux);
+        void Cmd_Vel_Watchdog();
+        void Send_Stop_Command();
         void arm_cmd_Callback(const std_msgs::msg::Float32MultiArray arm_joint);
 		void RangerAvoidFlag_Callback(const std_msgs::msg::Bool::SharedPtr AvoidFlag);
 		//避障处理函数
@@ -275,6 +279,10 @@ class turn_on_robot : public rclcpp::Node
         string usart_port_name, robot_frame_id, gyro_frame_id, odom_frame_id; //Define the related variables //定义相关变量
 		string cmd_vel;
 		bool ranger_avoid_flag,ultrasonic_avoid;
+        double cmd_vel_timeout;
+        std::chrono::steady_clock::time_point last_cmd_vel_time;
+        bool cmd_vel_received=false;
+        bool cmd_vel_timed_out=true;
         int serial_baud_rate;      //Serial communication baud rate //串口通信波特率
         RECEIVE_DATA Receive_Data; //The serial port receives the data structure //串口接收数据结构体
         SEND_DATA Send_Data;       //The serial port sends the data structure //串口发送数据结构体

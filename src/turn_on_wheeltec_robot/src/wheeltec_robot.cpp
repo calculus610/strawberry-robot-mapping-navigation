@@ -237,6 +237,10 @@ void turn_on_robot::Cmd_Vel_Callback(const geometry_msgs::msg::Twist::SharedPtr 
 {
   short  transition;  //intermediate variable //中间变量
 
+  last_cmd_vel_time = std::chrono::steady_clock::now();
+  cmd_vel_received = true;
+  cmd_vel_timed_out = false;
+
   Send_Data.tx[0]=FRAME_HEADER; //frame head 0x7B //帧头0X7B
   Send_Data.tx[1] = AutoRecharge; //set aside //预留位
   Send_Data.tx[2] = SecurityPLY; //set aside //预留位
@@ -283,6 +287,52 @@ void turn_on_robot::Cmd_Vel_Callback(const geometry_msgs::msg::Twist::SharedPtr 
   {
     RCLCPP_ERROR(this->get_logger(),("Unable to send data through serial port")); //If sending data fails, an error message is printed //如果发送数据失败，打印错误信息
   }
+}
+
+void turn_on_robot::Send_Stop_Command()
+{
+  Send_Data.tx[0] = FRAME_HEADER;
+  Send_Data.tx[1] = AutoRecharge;
+  Send_Data.tx[2] = SecurityPLY;
+  Send_Data.tx[3] = 0;
+  Send_Data.tx[4] = 0;
+  Send_Data.tx[5] = 0;
+  Send_Data.tx[6] = 0;
+  Send_Data.tx[7] = 0;
+  Send_Data.tx[8] = 0;
+  Send_Data.tx[9] = Check_Sum(9, SEND_DATA_CHECK);
+  Send_Data.tx[10] = FRAME_TAIL;
+
+  try
+  {
+    Stm32_Serial.write(Send_Data.tx, sizeof(Send_Data.tx));
+  }
+  catch (serial::IOException& e)
+  {
+    RCLCPP_ERROR(this->get_logger(), "Unable to send watchdog stop command through serial port");
+  }
+}
+
+void turn_on_robot::Cmd_Vel_Watchdog()
+{
+  if (cmd_vel_timeout <= 0.0 || !cmd_vel_received || cmd_vel_timed_out)
+  {
+    return;
+  }
+
+  const double elapsed = std::chrono::duration<double>(
+    std::chrono::steady_clock::now() - last_cmd_vel_time).count();
+  if (elapsed < cmd_vel_timeout)
+  {
+    return;
+  }
+
+  Send_Stop_Command();
+  cmd_vel_timed_out = true;
+  RCLCPP_WARN(
+    this->get_logger(),
+    "cmd_vel timeout after %.3f s; sent zero velocity to chassis",
+    elapsed);
 }
 
 
@@ -996,6 +1046,7 @@ turn_on_robot::turn_on_robot():rclcpp::Node ("wheeltec_robot")
   this->declare_parameter<double>("odom_y_scale",1.0);
   this->declare_parameter<double>("odom_z_scale_positive",1.0);
   this->declare_parameter<double>("odom_z_scale_negative",1.0);
+  this->declare_parameter<double>("cmd_vel_timeout",0.5);
 
   this->get_parameter("ranger_avoid_flag", ranger_avoid_flag);
   this->get_parameter("ultrasonic_avoid", ultrasonic_avoid);
@@ -1011,6 +1062,7 @@ turn_on_robot::turn_on_robot():rclcpp::Node ("wheeltec_robot")
   this->get_parameter("odom_y_scale", odom_y_scale);
   this->get_parameter("odom_z_scale_positive", odom_z_scale_positive);
   this->get_parameter("odom_z_scale_negative", odom_z_scale_negative);
+  this->get_parameter("cmd_vel_timeout", cmd_vel_timeout);
 
   //将car_mode转换为小写，便于后续判断车型模式
   std::transform(car_mode.begin(), car_mode.end(), car_mode.begin(),
@@ -1060,6 +1112,9 @@ turn_on_robot::turn_on_robot():rclcpp::Node ("wheeltec_robot")
   
   Cmd_Vel_Sub = create_subscription<geometry_msgs::msg::Twist>(
       "/cmd_vel", 2, std::bind(&turn_on_robot::Cmd_Vel_Callback, this, _1));
+  Cmd_Vel_Watchdog_Timer = create_wall_timer(
+      std::chrono::milliseconds(50),
+      std::bind(&turn_on_robot::Cmd_Vel_Watchdog, this));
 
   AvoidFlag_Sub = create_subscription<std_msgs::msg::Bool>(
       "RangerAvoidFlag", 10, std::bind(&turn_on_robot::RangerAvoidFlag_Callback, this, _1));
