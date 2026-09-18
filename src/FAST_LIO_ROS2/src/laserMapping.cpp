@@ -552,12 +552,17 @@ void publish_frame_world(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::Share
 
 void publish_frame_body(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_body)
 {
-    int size = feats_undistort->points.size();
+    // Match /cloud_registered semantics: dense_publish_en=false must also
+    // downsample the body-frame cloud.  The old implementation always sent
+    // feats_undistort here, so the pointcloud-to-laserscan pipeline received a
+    // much larger cloud than requested and gradually fell behind real time.
+    PointCloudXYZI::Ptr laserCloudBody(dense_pub_en ? feats_undistort : feats_down_body);
+    int size = laserCloudBody->points.size();
     PointCloudXYZI::Ptr laserCloudIMUBody(new PointCloudXYZI(size, 1));
 
     for (int i = 0; i < size; i++)
     {
-        RGBpointBodyLidarToIMU(&feats_undistort->points[i], \
+        RGBpointBodyLidarToIMU(&laserCloudBody->points[i], \
                             &laserCloudIMUBody->points[i]);
     }
 
@@ -670,6 +675,10 @@ void publish_path(rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubPath)
     set_posestamp(msg_body_pose);
     msg_body_pose.header.stamp = get_ros_time(lidar_end_time); // ros::Time().fromSec(lidar_end_time);
     msg_body_pose.header.frame_id = "camera_init";
+    // A Path has its own header in addition to the individual PoseStamped
+    // headers.  Keeping the constructor-time stamp made RViz repeatedly query
+    // a transform that had already aged out of the TF cache.
+    path.header.stamp = msg_body_pose.header.stamp;
 
     /*** if path is too large, the rvis will crash ***/
     static int jjj = 0;
@@ -927,17 +936,28 @@ public:
         /*** ROS subscribe initialization ***/
         if (p_pre->lidar_type == AVIA)
         {
-            sub_pcl_livox_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(lid_topic, 20, livox_pcl_cbk);
+            // Localization must prefer the newest scan over replaying a
+            // growing reliable backlog.  FAST-LIO tolerates an occasional
+            // dropped scan and integrates the intervening IMU samples.
+            sub_pcl_livox_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(
+                lid_topic, rclcpp::SensorDataQoS().keep_last(2), livox_pcl_cbk);
         }
         else
         {
             sub_pcl_pc_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(lid_topic, rclcpp::SensorDataQoS(), standard_pcl_cbk);
         }
         sub_imu_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_topic, 10, imu_cbk);
-        pubLaserCloudFull_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered", 20);
-        pubLaserCloudFull_body_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered_body", 20);
-        pubLaserCloudEffect_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_effected", 20);
-        pubLaserCloudMap_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/Laser_map", 20);
+        // These high-bandwidth point clouds are live sensor products.  A slow
+        // visualizer or converter must not make old clouds queue behind the
+        // robot's current surroundings.
+        pubLaserCloudFull_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+            "/cloud_registered", rclcpp::SensorDataQoS().keep_last(1));
+        pubLaserCloudFull_body_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+            "/cloud_registered_body", rclcpp::SensorDataQoS().keep_last(1));
+        pubLaserCloudEffect_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+            "/cloud_effected", rclcpp::SensorDataQoS().keep_last(1));
+        pubLaserCloudMap_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+            "/Laser_map", rclcpp::SensorDataQoS().keep_last(1));
         pubOdomAftMapped_ = this->create_publisher<nav_msgs::msg::Odometry>("/Odometry", 20);
         pubPath_ = this->create_publisher<nav_msgs::msg::Path>("/path", 20);
         tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);

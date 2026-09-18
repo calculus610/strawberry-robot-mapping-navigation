@@ -156,7 +156,7 @@
             # /cloud_registered 的点云密度开关：
             # true  = 发布去畸变后的较密点云，细节更多、带宽和 CPU/内存开销更高；
             # false = 发布经过 filter_size_surf 降采样的点云。
-            # 注意：当前 /cloud_registered_body 的实现仍发布较密的去畸变点云。
+            # /cloud_registered_body 使用同一开关，避免二维扫描链路处理稠密积压。
             dense_publish_en: false
 
             # 是否发布 IMU/body 坐标系下的点云到 /cloud_registered_body。

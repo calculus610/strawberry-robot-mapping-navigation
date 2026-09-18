@@ -10,8 +10,9 @@ slam_toolbox:
     mode: mapping
     debug_logging: false
     throttle_scans: 2
-    # online_async 模式只保留最新待处理扫描，避免偶发 TF 延迟后处理陈旧数据。
-    scan_queue_size: 1
+    # 给启动期 DDS/TF 发现保留一个很小的吸收窗口。1 帧队列在实测中会
+    # 持续产生 "queue is full"；5 帧仍只覆盖约 0.5 秒，不会形成旧图积压。
+    scan_queue_size: 5
     transform_publish_period: 0.02
     map_update_interval: 1.0
     resolution: 0.05
