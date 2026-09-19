@@ -23,8 +23,18 @@ def generate_launch_description():
 
     config_file_arg = DeclareLaunchArgument(
         'config_file',
-        default_value='mid360_fastlio.yaml',
-        description='FAST-LIO config file name',
+        default_value='mid360_fastlio_autonomous.yaml',
+        description='Autonomous-mapping FAST-LIO config file name',
+    )
+
+    scan_params_file_arg = DeclareLaunchArgument(
+        'scan_params_file',
+        default_value=PathJoinSubstitution([
+            bringup_share,
+            'config',
+            'pointcloud_to_laserscan_fastlio_autonomous.yaml',
+        ]),
+        description='Autonomous pointcloud_to_laserscan parameter file',
     )
 
     start_rviz_arg = DeclareLaunchArgument(
@@ -168,6 +178,7 @@ def generate_launch_description():
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'config_path': LaunchConfiguration('config_path'),
             'config_file': LaunchConfiguration('config_file'),
+            'scan_params_file': LaunchConfiguration('scan_params_file'),
             'start_rviz': LaunchConfiguration('start_rviz'),
             'rviz_config': LaunchConfiguration('rviz_config'),
             'body_to_base_x': LaunchConfiguration('body_to_base_x'),
@@ -200,6 +211,7 @@ def generate_launch_description():
         use_sim_time_arg,
         config_path_arg,
         config_file_arg,
+        scan_params_file_arg,
         start_rviz_arg,
         rviz_config_arg,
         nav2_params_file_arg,

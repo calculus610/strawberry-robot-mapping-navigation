@@ -1,0 +1,20 @@
+# 自主建图专用近场扫描参数；手动建图继续使用 0.50 m 的稳定配置。
+/**:
+  ros__parameters:
+    target_frame: fastlio_base_footprint
+    transform_tolerance: 0.2
+    min_height: -0.5
+    max_height: 0.8
+    angle_min: -3.14159
+    angle_max: 3.14159
+    angle_increment: 0.0087
+    scan_time: 0.1
+    range_min: 0.2
+    range_max: 20.0
+    use_inf: true
+    inf_epsilon: 1.0
+    concurrency_level: 1
+    # 避障只需要最新环境。积压旧点云会让 scan 时间戳落后 TF，最终被
+    # Nav2 以 "earlier than all data" 丢弃。
+    queue_size: 1
+    lazy: false
