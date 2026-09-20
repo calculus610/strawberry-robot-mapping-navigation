@@ -1,3 +1,8 @@
+# Navigation tuning baseline:
+#   /home/wheeltec/nav2_cfg/param_senior_akm.yaml
+# FAST-LIO autonomous-mapping integration intentionally keeps its own frames,
+# odometry topic, TF tolerances, behavior-tree injection, /scan voxel geometry,
+# and allow_unknown=true.
 amcl:
   ros__parameters:
     use_sim_time: False
@@ -19,10 +24,10 @@ amcl:
     laser_min_range: -1.0           #要考虑的最小扫描范围，-1.0 将导致使用激光报告的最小范围
     laser_model_type: "likelihood_field" #使用哪种模型，
     #beam、likelihood_field 或 unlikely_field_prob。与 unlikely_field 相同，但如果启用，则包含 beamskip 功能
-    max_beams: 120                   #更新过滤器时每次扫描要使用多少个均匀分布的光束。
+    max_beams: 120                  #更新过滤器时每次扫描要使用多少个均匀分布的光束。
     max_particles: 2000             #允许的最大粒子数
     min_particles: 500              #允许的最小粒子数
-    odom_frame_id: "camera_init"  # FAST-LIO 连续里程计坐标系
+    odom_frame_id: "camera_init"  #FAST-LIO局部连续里程计框架
     pf_err: 0.05                    #粒子过滤器群体误差
     pf_z: 0.99                      #粒子过滤器群体密度
     recovery_alpha_fast: 0.0        #快速平均权重过滤器的指数衰减率，用于决定何时通过添加随机姿势进行恢复。
@@ -34,7 +39,7 @@ amcl:
     sigma_hit: 0.2                 #模型的 z_hit 部分中使用的高斯模型的标准差
     tf_broadcast: true              #将其设置为 false 以防止 amcl 发布全局框架和里程计框架之间的变换
     transform_tolerance: 1.0        #发布转换的容差
-    update_min_a: 0.05              #执行过滤器更新之前需要进行旋转运动。
+    update_min_a: 0.05             #执行过滤器更新之前需要进行旋转运动。
     update_min_d: 0.05             #执行过滤器更新之前需要进行平移运动
     z_hit: 0.5                      #模型的 z_hit 部分的混合权重，所有使用的 z 权重之和必须为 1。
     z_max: 0.05                    #模型的 z_max 部分的混合权重，所有使用的 z 权重之和必须为 1。
@@ -63,15 +68,17 @@ amcl_rclcpp_node:
 bt_navigator:
   ros__parameters:
     use_sim_time: False
-    transform_tolerance: 0.1 #变换容差
+    transform_tolerance: 2.0 #兼容 FAST-LIO + slam_toolbox 的 TF 处理延迟
     goal_reached_tol: 0.25 #接受姿势作为目标的容忍度(m)
     global_frame: map
     robot_base_frame: fastlio_base_footprint
-    odom_topic: /odom_combined
+    # 底盘驱动实际发布的话题名是 /odom；消息内部 frame_id 才是 odom_combined。
+    odom_topic: /odom
     bt_loop_duration: 10        #BT 执行每次迭代的持续时间（以毫秒为单位
     default_server_timeout: 20  #BT 操作节点等待操作服务器确认时的默认超时值（以毫秒为单位）
-    default_nav_to_pose_bt_xml: "/home/wheeltec/nav2_cfg/navigate_to_pose_no_spin.xml"
-    default_nav_through_poses_bt_xml: "/home/wheeltec/nav2_cfg/navigate_through_poses_no_spin.xml"
+    # 实际安装路径由 nav2_fastlio.launch.py 注入。
+    default_nav_to_pose_bt_xml: ""
+    default_nav_through_poses_bt_xml: ""
     # 'default_nav_through_poses_bt_xml' and 'default_nav_to_pose_bt_xml' are use defaults:
     # nav2_bt_navigator/navigate_to_pose_w_replanning_and_recovery.xml
     # nav2_bt_navigator/navigate_through_poses_w_replanning_and_recovery.xml
@@ -86,22 +93,39 @@ bt_navigator_rclcpp_node:
   ros__parameters:
     use_sim_time: False
 
+# 底盘串口反馈恢复前显式使用开环平滑，避免 velocity_smoother 等待无数据的 /odom。
+# controller_server 仍保留 /odom 接口，底盘反馈恢复后无需改导航接口。
+velocity_smoother:
+  ros__parameters:
+    use_sim_time: False
+    smoothing_frequency: 15.0
+    scale_velocities: false
+    feedback: "OPEN_LOOP"
+    max_velocity: [0.22, 0.0, 0.30]
+    min_velocity: [-0.12, 0.0, -0.30]
+    max_accel: [0.4, 0.0, 0.5]
+    max_decel: [-0.5, 0.0, -0.5]
+    odom_topic: /odom
+    odom_duration: 0.1
+    deadband_velocity: [0.0, 0.0, 0.0]
+    velocity_timeout: 0.5
+
 controller_server:
   ros__parameters:
     use_sim_time: False
-    controller_frequency: 20.0                #运行控制器的频率
+    controller_frequency: 15.0                #给 FAST-LIO + MPPI 留出实时余量，避免持续丢控制周期
     # min_x_velocity_threshold: -0.35           #最小 x 速度阈值
     # min_y_velocity_threshold: 0.35             #最小 y 速度阈值
     min_theta_velocity_threshold: 0.001       #最小速度阈值
-    odom_topic: /odom_combined
+    odom_topic: /odom
     progress_checker_plugin: "progress_checker"
     goal_checker_plugins: ["goal_checker"]
     controller_plugins: ["FollowPath"]
 
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.1            #所需运动半径
-      movement_time_allowance: 10.0            #移动时间容差
+      required_movement_radius: 0.1             #所需运动半径
+      movement_time_allowance: 10.0             #移动时间容差
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.25                  #xy 目标容差
@@ -109,97 +133,89 @@ controller_server:
       stateful: True
 
     FollowPath:
-      plugin: "nav2_mppi_controller::MPPIController" #MPPI控制器
-      time_steps: 80    #候选轨迹中的时间步长（点）数
-      model_dt: 0.05    #每个时间步长的时间步长的长度dt（以秒为单位）是预测范围
-      batch_size: 1500  #在给定迭代中从当前最佳控制序列中随机采样的候选轨迹的数量
-      vx_std: 0.2       #Vx 的抽样标准差
-      vy_std: 0.0       #Vy 的抽样标准差
-      wz_std: 0.25       #Wz（角速度）的抽样标准差
-      vx_max: 0.25       #目标最大前进速度（米/秒）
-      vx_min: -0.25      #目标最大反向速度（米/秒）
-      vy_max: 0.0       #如果使用Omni运动模型，目标最大横向速度（m/s）
-      wz_max: 0.30     #最大旋转速度（弧度/秒）
+      plugin: "nav2_mppi_controller::MPPIController"
+      time_steps: 56
+      # 15 Hz 控制周期约 0.0667 s；MPPI 要求 model_dt 不小于控制周期。
+      model_dt: 0.07
+      batch_size: 1000
+      vx_std: 0.2
+      vy_std: 0.0
+      wz_std: 0.25
+      vx_max: 0.22
+      vx_min: -0.12
+      vy_max: 0.0
+      wz_max: 0.30
       ax_max: 0.5
       ax_min: -0.5
       ay_max: 0.0
       az_max: 0.5
-      iteration_count: 1 #迭代次数
-      prune_distance: 2.0 #路径上距离机器人最近点的距离（米）
+      iteration_count: 1
+      prune_distance: 2.0
       enforce_path_inversion: true
-      transform_tolerance: 0.1 #使用 TF（s）进行数据转换的时间容差
-      temperature: 0.3 #根据成本选择轨迹，0表示使用成本最佳的控制，巨大的值将导致仅取所有轨迹的平均值而不考虑成本。
-      gamma: 0.015 #平滑度（高）和低能耗（低）之间的权衡,保持默认值
-      motion_model: "Ackermann" #用于轨迹规划的所需运动模型。选项包括DiffDrive、Omni或Ackermann。
-      visualize: false #是否发布调试轨迹以供可视化。
-      TrajectoryVisualizer: #轨迹可视化
-        trajectory_step: 5 #轨迹之间的步骤可视化以对候选轨迹池进行下采样
-        time_step: 3 #轨迹上点之间的步骤可视化以降低轨迹密度的采样
+      transform_tolerance: 2.0
+      temperature: 0.3
+      gamma: 0.015
+      motion_model: "Ackermann"
+      visualize: false
+      TrajectoryVisualizer:
+        trajectory_step: 5
+        time_step: 3
       AckermannConstraints:
-        min_turning_r: 0.80 #最小转弯半径（阿克曼运动模型）
-      critics: ["ConstraintCritic", "ObstaclesCritic", "GoalCritic", "GoalAngleCritic", "PathAlignCritic", "PathFollowCritic", "PathAngleCritic", "PreferForwardCritic"] #评论插件
-      ConstraintCritic: #修复超出设定的动态或运动学约束的轨迹
+        min_turning_r: 0.80
+      critics: ["ConstraintCritic", "ObstaclesCritic", "GoalCritic", "GoalAngleCritic", "PathAlignCritic", "PathFollowCritic", "PathAngleCritic", "PreferForwardCritic"]
+      ConstraintCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 4.0  #权重参数
-
-      GoalAngleCritic: #当距离目标较近时，GoalAngleCritic会激励导航以达到目标姿势的角度
+        cost_weight: 4.0
+      GoalAngleCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 3.0 #权重参数
-        threshold_to_consider: 1.0  #考虑阈值：机器人与目标之间的最小距离（米），超过此距离则考虑角度目标成本
-
-      GoalCritic: #当距离目标较近时，GoalCritic会激励机器人在空间上向目标导航
+        cost_weight: 3.0
+        threshold_to_consider: 1.0
+      GoalCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 2.0 #权重参数
-        threshold_to_consider: 1.4  #机器人与目标之间的最小距离（米），超过此距离则要考虑目标距离成本。
-
+        cost_weight: 2.0
+        threshold_to_consider: 1.4
       ObstaclesCritic:
         enabled: true
         cost_power: 1
-        repulsion_weight: 3.5 #权重参数，通常优先选择成本较低的空间中的路线。
-        critical_weight: 30.0 #应用于临界碰撞的权重，用于collision_margin_distance防止近距离碰撞
-        consider_footprint: true #是否使用点成本（如果机器人是圆形的或者计算能力低）或计算 SE2 足迹成本
-        collision_cost: 100000.0 #应用于轨迹中真实碰撞的成本。
-        collision_margin_distance: 0.05 #碰撞边缘距离，应该设置在0.05-0.2之间，请确保将此参数设置为预计机器人需要穿越的最窄空间
-        near_goal_distance: 0.4 #靠近目标的距离（米）停止应用优先障碍物项，以允许机器人平稳地收敛到靠近障碍物的目标姿势，0.5 --> 0.6 -->0.3(Tues)
+        repulsion_weight: 4.5
+        critical_weight: 40.0
+        consider_footprint: true
+        collision_cost: 100000.0
+        collision_margin_distance: 0.18
+        near_goal_distance: 0.6
         cost_scaling_factor: 2.0
-        inflation_radius: 0.25  #膨胀半径，仅限Humble
-
-      PreferForwardCritic: #激励机器人前进，而不是后退
-        enabled: false
-        cost_power: 1
-        cost_weight: 1.5 #权重参数
-        threshold_to_consider: 0.5 #机器人与目标之间的距离（米）停止考虑前锋并允许目标批评家接管。
-      # Option to replace Cost and use Obstacles instead
-
-      PathAlignCritic:  #PathAlignCritic会激励机器人与全局路径保持一致。它不实现路径跟随行为。
+        inflation_radius: 0.50
+      PreferForwardCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 2.0 #权重参数
-        max_path_occupancy_ratio: 0.07 #最大路径占用率
+        cost_weight: 5.0
+        threshold_to_consider: 1.5
+      PathAlignCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 2.0
+        max_path_occupancy_ratio: 0.07
         trajectory_point_step: 4
-        threshold_to_consider: 0.5 #机器人与目标之间的距离阈值，阈值符合则停止考虑路径对齐并允许目标批评家接管。
-        offset_from_furthest: 20 #最远偏移量
-        use_path_orientations: true #是否在路径对齐中考虑路径的方向
-
-      PathAngleCritic: #路径角度评论，机器人在因累积角度误差较大而需要时进行急转弯。
+        threshold_to_consider: 0.5
+        offset_from_furthest: 20
+        use_path_orientations: true
+      PathAngleCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 2.0 #权重参数
-        offset_from_furthest: 4 #最远偏移量，任何轨迹达到最远路径点之后的路径点数，用于计算相对于的路径角度。
-        threshold_to_consider: 0.5 #机器人与目标之间的距离阈值，阈值符合允许目标批评家接管。
-        max_angle_to_furthest: 1.0 #机器人与目标之间的角距离
-        forward_preference: false
-
-      PathFollowCritic: #路径跟随评论家激励机器人沿着路径前进。
+        cost_weight: 2.0
+        offset_from_furthest: 4
+        threshold_to_consider: 0.5
+        max_angle_to_furthest: 1.0
+        forward_preference: true
+      PathFollowCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 4.0 #权重参数
+        cost_weight: 4.0
         offset_from_furthest: 5
-        threshold_to_consider: 0.5 #机器人与目标之间的距离阈值，停止考虑路径跟随，并允许目标评论家接管。
-#参数参考：https://docs.nav2.org/configuration/packages/configuring-mppic.html
+        threshold_to_consider: 0.5
 
       
 controller_server_rclcpp_node:
@@ -211,8 +227,10 @@ local_costmap:
     ros__parameters:
       update_frequency: 5.0    #成本地图更新频率
       publish_frequency: 2.0   #将成本图发布到话题的频率
-      global_frame: camera_init                    # FAST-LIO 局部连续里程计框架
-      robot_base_frame: fastlio_base_footprint     # FAST-LIO 建图专用底座框架
+      transform_tolerance: 2.0 #兼容 FAST-LIO + slam_toolbox 约 1 s 的 TF 处理延迟
+      # FAST-LIO 发布 camera_init -> body，body -> fastlio_base_footprint 为静态 TF。
+      global_frame: camera_init         #FAST-LIO局部连续里程计框架
+      robot_base_frame: fastlio_base_footprint  # FAST-LIO 建图专用底座框架
       use_sim_time: False  #仿真时间
       rolling_window: true #成本地图是否应随机器人基座框架滚动
       width: 4             #代价地图的宽度（m）
@@ -220,42 +238,32 @@ local_costmap:
       resolution: 0.05     #代价地图1像素的分辨率，以米为单位
       #robot_radius: 0.20   #机器人半径，如果未提供足迹坐标，则使用机器人半径。
       footprint: "[ [-0.22, -0.175], [-0.22, 0.175], [0.22,0.175], [0.22, -0.175] ]"
-      plugins: ["voxel_layer","inflation_layer"] #插件包括:{“体素层”，“障碍层”，“膨胀层”}
+      plugins: ["obstacle_layer", "inflation_layer"] # /scan 是二维数据，直接使用障碍层
       inflation_layer:                             #膨胀层参数
         plugin: "nav2_costmap_2d::InflationLayer"  #膨胀层插件。
         cost_scaling_factor: 2.0                   #成本缩放因子，决定障碍物成本随距离的递减速度。
-        inflation_radius: 0.25                     #膨胀半径
-      voxel_layer:
-        plugin: "nav2_costmap_2d::VoxelLayer"      #体素层插件。
+        inflation_radius: 0.50                     #与导航组安全距离一致
+      # 输入已经是二维 /scan。使用 ObstacleLayer，避免 FAST-LIO 的
+      # camera_init 高度变化使 VoxelLayer 的传感器原点越过 Z 边界。
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
-        publish_voxel_map: True
-        origin_z: 0.0                              #体素地图的起始Z坐标
-        z_resolution: 0.05                         #体素地图的Z轴分辨率
-        z_voxels: 16                               #体素地图的Z轴体素数量
-        max_obstacle_height: 2.0                   #可检测障碍物的最大高度（米）
-        mark_threshold: 0                          #标记体素的阈值
-        observation_sources: scan scan2                 #观测源
+        footprint_clearing_enabled: True
+        max_obstacle_height: 2.0
+        observation_sources: scan
         scan:
           topic: /scan
-          max_obstacle_height: 2.0                  #可检测障碍物的最大高度（米）
-          clearing: True                            #是否启用障碍物清除功能
-          marking: True                             #是否启用障碍物标记功能
-          data_type: "LaserScan"                    #数据类型
-          raytrace_max_range: 10.0                  #控制光线追踪从代价地图中清除障碍物的最大范围
-          raytrace_min_range: 0.0                  #控制光线追踪从代价地图中清除障碍物的最大范围
-          obstacle_max_range: 2.5                   #控制代价地图上标记障碍物的最大范围
-          obstacle_min_range: 0.0                   #控制代价地图上标记障碍物的最小范围
-        scan2:
-          topic: /scan2
-          max_obstacle_height: 2.0                  #可检测障碍物的最大高度（米）
-          clearing: True                            #是否启用障碍物清除功能
-          marking: True                             #是否启用障碍物标记功能
-          data_type: "LaserScan"                    #数据类型
-          raytrace_max_range: 10.0                  #控制光线追踪从代价地图中清除障碍物的最大范围 
-          raytrace_min_range: 0.0                  #控制光线追踪从代价地图中清除障碍物的最大范围 
-          obstacle_max_range: 2.5                   #控制代价地图上标记障碍物的最大范围
-          obstacle_min_range: 0.0                   #控制代价地图上标记障碍物的最小范围
-
+          min_obstacle_height: -1.0
+          max_obstacle_height: 2.0
+          observation_persistence: 0.5
+          inf_is_valid: True
+          clearing: True
+          marking: True
+          data_type: "LaserScan"
+          raytrace_max_range: 10.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.0
       always_send_full_costmap: True                 #是否每次更新时都发送完整的成本图，而不是更新
   local_costmap_client:
     ros__parameters:
@@ -269,6 +277,7 @@ global_costmap:
     ros__parameters:
       update_frequency: 1.0             #成本地图更新频率
       publish_frequency: 1.0            #将成本图发布到话题的频率
+      transform_tolerance: 2.0          #兼容 FAST-LIO + slam_toolbox 的 TF 处理延迟
       global_frame: map                 #全局框架
       robot_base_frame: fastlio_base_footprint  # FAST-LIO 建图专用底座框架
       use_sim_time: False               #仿真时间 
@@ -330,14 +339,14 @@ planner_server: #规划器服务器参数
       tolerance: 0.25                      # 如果无法达到精确的姿势，则规划的容差(单位m)
       downsample_costmap: false           # 是否将代价图下采样至另一个分辨率以进行搜索
       downsampling_factor: 1              # 对代价图进行下采样的乘数因子
-      allow_unknown: true                 # 自动探索需允许规划到未知区域边界
+      allow_unknown: true                 # 自动探索必须允许规划到未知区域边界
       max_iterations: 1000000             # 失败前搜索的最大迭代次数（以防无法到达），设置为 -1 以禁用
       max_on_approach_iterations: 1000    # 在公差范围内尝试达到目标的最大迭代次数，仅限 2D
       max_planning_time: 5.0              # 规划器进行规划、平滑和上采样的最大时间（以秒为单位）。
       motion_model_for_search: "REEDS_SHEPP"    # 2D Moore, Von Neumann; Hybrid Dubin, Redds-Shepp; State Lattice set internally
       cost_travel_multiplier: 7.0         #应用于搜索以避开高成本区域的成本乘数。
       # For 2D: Cost multiplier to apply to search to steer away from high cost areas. Larger values will place in the center of aisles more exactly (if non-`FREE` cost potential field exists) but take slightly longer to compute. To optimize for speed, a value of 1.0 is reasonable. A reasonable tradeoff value is 2.0. A value of 0.0 effective disables steering away from obstacles and acts like a naive binary search A*.
-      angle_quantization_bins: 120         #用于 SE2 搜索的角度箱数量。这可以是任何偶数，但好的基线是 64 或 72（以 5 度为增量）
+      angle_quantization_bins: 120        #用于 SE2 搜索的角度箱数量。这可以是任何偶数，但好的基线是 64 或 72（以 5 度为增量）
       # For Hybrid/Lattice nodes: Number of angle bins for search, must be 1 for 2D node (no angle search)
       analytic_expansion_ratio: 3.5       #规划器将尝试以与该值和最小启发式方法成比例的频率完成分析扩展。
       # For Hybrid/Lattice nodes: The ratio to attempt analytic expansions during search for final approach.
@@ -345,11 +354,11 @@ planner_server: #规划器服务器参数
       analytic_expansion_max_length: 4.0
       minimum_turning_radius: 0.80        #最小转弯半径
       # For Hybrid/Lattice nodes: minimum turning radius in m of path / vehicle
-      reverse_penalty: 1.0               #如果反向搜索，则对 SE2 节点应用启发式惩罚。
+      reverse_penalty: 2.5                #允许短倒车脱困，但不再让长距离倒车成为最优探索路线。
       # For Reeds-Shepp model: penalty to apply if motion is reversing, must be => 1
-      change_penalty: 0.0                 #如果在搜索中改变方向（例如从左到右），则对 SE2 节点应用启发式惩罚。
+      change_penalty: 0.2                 #抑制前进/倒车频繁切换。
       # For Hybrid nodes: penalty to apply if motion is changing directions, must be >= 0
-      non_straight_penalty: 1.2          #如果在非直线方向上搜索，则对 SE2 节点应用启发式惩罚。
+      non_straight_penalty: 1.20          #必须 >= 1.0；惩罚非直线路径
       # For Hybrid nodes: penalty to apply if motion is non-straight, must be => 1
       cost_penalty: 2.0                   #应用于 SE2 节点的姿势成本的启发式惩罚。
       # For Hybrid nodes: penalty to apply to higher cost areas when adding into the obstacle map dynamic programming distance expansion heuristic. This drives the robot more towards the center of passages. A value between 1.3 - 3.5 is reasonable.
@@ -384,16 +393,13 @@ behavior_server:
     costmap_topic: local_costmap/costmap_raw           #用于在局部代价地图上进行碰撞检查的原始代价地图主题。
     footprint_topic: local_costmap/published_footprint #局部代价地图框架中的足迹主题。
     cycle_frequency: 10.0 #运行行为插件的频率。
-    behavior_plugins: ["backup", "drive_on_heading", "wait"] #插件包括：{“旋转”、“备份”、“前进”、“等待”}
-    backup:
-      plugin: "nav2_behaviors/BackUp"
-    drive_on_heading:
-      plugin: "nav2_behaviors/DriveOnHeading"
+    # 阿克曼底盘在局部感知失效时自动倒车风险较高，恢复阶段只等待并重规划。
+    behavior_plugins: ["wait"]
     wait:
       plugin: "nav2_behaviors/Wait"
     global_frame: camera_init
     robot_base_frame: fastlio_base_footprint
-    transform_tolerance: 0.1 #TF 变换容差
+    transform_tolerance: 2.0 #兼容 FAST-LIO + slam_toolbox 的 TF 处理延迟
     use_sim_time: False
     simulate_ahead_time: 2.0 #提前模拟
     max_rotational_vel: 0.30  #最大旋转速度（弧度/秒）
