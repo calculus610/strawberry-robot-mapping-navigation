@@ -1,13 +1,43 @@
+from ament_index_python.packages import get_package_prefix
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    RegisterEventHandler,
+    Shutdown,
+    TimerAction,
+)
 from launch.conditions import IfCondition
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
+def assert_official_nav2_underlay():
+    expected_prefix = '/opt/ros/humble'
+    packages = ('nav2_bringup', 'nav2_mppi_controller')
+    unexpected = {
+        package: get_package_prefix(package)
+        for package in packages
+        if get_package_prefix(package) != expected_prefix
+    }
+    if unexpected:
+        details = ', '.join(
+            f'{package}={prefix}'
+            for package, prefix in unexpected.items()
+        )
+        raise RuntimeError(
+            'Autonomous mapping requires the official /opt/ros/humble Nav2, '
+            f'but the current shell resolved {details}. Start it through the '
+            'isolated Web autonomous-mapping entry or ./scripts/robot.sh shell.'
+        )
+
+
 def generate_launch_description():
+    assert_official_nav2_underlay()
     bringup_share = FindPackageShare('my_robot_bringup_fastlio')
 
     use_sim_time_arg = DeclareLaunchArgument(
@@ -69,9 +99,18 @@ def generate_launch_description():
         default_value=PathJoinSubstitution([
             bringup_share,
             'config',
-            'explore_lite_fastlio.yaml',
+            'ackermann_explorer_fastlio.yaml',
         ]),
-        description='explore_lite parameter file',
+        description='Ackermann-aware frontier explorer parameter file',
+    )
+
+    explorer_executable_arg = DeclareLaunchArgument(
+        'explorer_executable',
+        default_value='ackermann_explore',
+        description=(
+            'Frontier explorer executable. Use explore only for the legacy '
+            'Euclidean-distance baseline.'
+        ),
     )
 
     autostart_arg = DeclareLaunchArgument(
@@ -101,13 +140,34 @@ def generate_launch_description():
     start_explorer_arg = DeclareLaunchArgument(
         'start_explorer',
         default_value='true',
-        description='Launch the explore_lite frontier exploration node',
+        description='Launch the configured frontier exploration node',
+    )
+
+    explorer_dry_run_arg = DeclareLaunchArgument(
+        'explorer_dry_run',
+        default_value='false',
+        description=(
+            'Evaluate and visualize one frontier selection without sending '
+            'NavigateToPose'
+        ),
     )
 
     explorer_start_delay_arg = DeclareLaunchArgument(
         'explorer_start_delay',
         default_value='30.0',
         description='Delay before frontier exploration starts, in seconds',
+    )
+
+    return_to_start_arg = DeclareLaunchArgument(
+        'return_to_start',
+        default_value='true',
+        description='Return to the first recorded exploration pose when complete',
+    )
+
+    return_timeout_arg = DeclareLaunchArgument(
+        'return_timeout',
+        default_value='120.0',
+        description='Maximum return-to-start navigation time in seconds',
     )
 
     start_base_arg = DeclareLaunchArgument(
@@ -208,14 +268,28 @@ def generate_launch_description():
 
     explore_lite_node = Node(
         package='explore_lite',
-        executable='explore',
-        name='explore_node',
+        executable=LaunchConfiguration('explorer_executable'),
+        name='ackermann_frontier_explorer',
         output='screen',
         condition=IfCondition(LaunchConfiguration('start_explorer')),
         parameters=[
             LaunchConfiguration('explorer_params_file'),
             {'use_sim_time': LaunchConfiguration('use_sim_time')},
         ],
+    )
+
+    explorer_exit_handler = RegisterEventHandler(
+        OnProcessExit(
+            target_action=explore_lite_node,
+            on_exit=[
+                Shutdown(
+                    reason=(
+                        'Ackermann explorer exited after completion or a '
+                        'fatal error'
+                    )
+                ),
+            ],
+        )
     )
 
     return LaunchDescription([
@@ -227,12 +301,16 @@ def generate_launch_description():
         rviz_config_arg,
         nav2_params_file_arg,
         explorer_params_file_arg,
+        explorer_executable_arg,
         autostart_arg,
         use_respawn_arg,
         log_level_arg,
         nav2_start_delay_arg,
         start_explorer_arg,
+        explorer_dry_run_arg,
         explorer_start_delay_arg,
+        return_to_start_arg,
+        return_timeout_arg,
         start_base_arg,
         car_mode_arg,
         imu_mode_arg,
@@ -244,6 +322,7 @@ def generate_launch_description():
         body_to_base_pitch_arg,
         body_to_base_yaw_arg,
         autonomous_mapping_launch,
+        explorer_exit_handler,
         TimerAction(
             period=LaunchConfiguration('explorer_start_delay'),
             actions=[explore_lite_node],

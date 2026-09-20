@@ -32,7 +32,10 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(lifecycle_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -47,7 +50,10 @@ find_package(explore_lite_msgs REQUIRED)
 
 set(DEPENDENCIES
   rclcpp
+  rclcpp_action
+  lifecycle_msgs
   std_msgs
+  std_srvs
   sensor_msgs
   tf2
   tf2_ros
@@ -83,33 +89,66 @@ add_executable(explore
   src/frontier_search.cpp
 )
 
+add_executable(ackermann_explore
+  src/ackermann_explore.cpp
+  src/costmap_client.cpp
+  src/frontier_search.cpp
+)
+
 target_include_directories(explore PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
+target_include_directories(ackermann_explore PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
 target_link_libraries(explore PUBLIC
   ${explore_lite_msgs_TARGETS}
   ${geometry_msgs_TARGETS}
+  ${lifecycle_msgs_TARGETS}
   ${map_msgs_TARGETS}
   ${nav2_msgs_TARGETS}
   ${nav_msgs_TARGETS}
   ${std_msgs_TARGETS}
   ${visualization_msgs_TARGETS}
   rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
   tf2::tf2
+  ${tf2_geometry_msgs_TARGETS}
+  tf2_ros::tf2_ros
+)
+
+target_link_libraries(ackermann_explore PUBLIC
+  ${explore_lite_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${lifecycle_msgs_TARGETS}
+  ${map_msgs_TARGETS}
+  ${nav2_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${visualization_msgs_TARGETS}
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+  tf2::tf2
+  ${tf2_geometry_msgs_TARGETS}
   tf2_ros::tf2_ros
 )
 
 if(TARGET nav2_costmap_2d::filters)
   target_link_libraries(explore PUBLIC nav2_costmap_2d::filters)
+  target_link_libraries(ackermann_explore PUBLIC nav2_costmap_2d::filters)
 else()
   # fallback for older nav2_costmap_2d (pre-1.1.7) that doesn't export targets
   message(STATUS "nav2_costmap_2d::filters target not found, using legacy variables")
   target_include_directories(explore SYSTEM PUBLIC ${nav2_costmap_2d_INCLUDE_DIRS})
   target_link_libraries(explore PUBLIC ${nav2_costmap_2d_LIBRARIES})
+  target_include_directories(ackermann_explore SYSTEM PUBLIC ${nav2_costmap_2d_INCLUDE_DIRS})
+  target_link_libraries(ackermann_explore PUBLIC ${nav2_costmap_2d_LIBRARIES})
 endif()
 
-install(TARGETS explore
+install(TARGETS explore ackermann_explore
   DESTINATION lib/${PROJECT_NAME})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
@@ -137,13 +176,17 @@ endif()
 ament_export_dependencies(
   explore_lite_msgs
   geometry_msgs
+  lifecycle_msgs
   map_msgs
   nav2_costmap_2d
   nav2_msgs
   nav_msgs
   rclcpp
+  rclcpp_action
   std_msgs
+  std_srvs
   tf2
+  tf2_geometry_msgs
   tf2_ros
   visualization_msgs
 )

@@ -1,0 +1,118 @@
+/**:
+  ros__parameters:
+    robot_base_frame: fastlio_base_footprint
+    costmap_topic: /map
+    costmap_updates_topic: /map_updates
+    transform_tolerance: 2.0
+
+    # 低频评估新的 frontier；导航期间保持当前目标，不周期性抢占。
+    planning_period: 5.0
+    # 上一目标到达后由事件触发下一轮，不再等待完整的 5 秒周期；
+    # 留 1 秒给地图和全局代价地图吸收最后一帧。
+    post_goal_replan_delay: 1.0
+    evaluation_timeout: 40.0
+    progress_timeout: 35.0
+    progress_epsilon: 0.05
+    progress_yaw_epsilon: 0.08
+
+    # 地图过期时停止决策；地图仍在变化时不得据此宣告探索完成。
+    map_freshness_timeout: 5.0
+    completion_map_stability_duration: 10.0
+
+    # 小于旧配置的 1.0 m，避免漏掉窄门和小房间。
+    min_frontier_size: 0.45
+
+    # 观察位姿只能落在已知自由区域。0.50 m 圆形安全包络覆盖当前
+    # 0.44 x 0.35 m footprint 的外接圆，并额外留下约 0.22 m 障碍余量。
+    candidate_standoff: 0.80
+    candidate_standoff_max: 1.20
+    footprint_clearance: 0.50
+    clearance_search_radius: 1.20
+    # 目标后方也必须留出短距离自由空间，避免驶入墙角或桌腿间后无法调整。
+    candidate_back_clearance_distance: 0.40
+    # 必须显著大于 Nav2 的 0.25 m 到达容差，防止同一近距离目标被反复
+    # 接收后立即判定 reached。360 度激光雷达无需为了原地换朝向重复发目标。
+    minimum_candidate_travel_distance: 0.50
+    # 从真实 frontier 边界点附近的已知自由栅格估计向内方向，不再围绕
+    # 可能位于错误位置的 frontier 簇质心画圆。法线受栅格噪声影响时在
+    # ±60 度内采样；仍无候选时才围绕真实边界点执行全角度安全回退。
+    # 所有回退点仍必须通过 0.50 m 净空、后方净空和 Hybrid-A* 验证。
+    candidate_inward_search_radius: 0.40
+    candidate_inward_angle_samples: 5
+    candidate_inward_angle_span: 1.0471975512
+
+    # 候选目标在规划前、发目标前和导航期间都用实时全局代价地图严格复核；
+    # 未知区始终不能作为候选目标。
+    global_costmap_topic: /global_costmap/costmap_raw
+    # 实测全局代价地图在系统负载下会出现约 2 秒发布间隔。5 秒允许短暂
+    # 调度抖动，但仍会在数据链真正中断时停止发出新目标。
+    global_costmap_freshness_timeout: 5.0
+
+    # 机器人当前位置改用局部代价地图检查真实障碍。实测完整 costmap 在
+    # 负载下约 1.67 Hz，因此 freshness 使用 3 秒健康窗口。0.42 m 阈值
+    # 保持不变：致命障碍立即取消；未知、地图陈旧和 TF 短暂抖动连续
+    # 3 次（安全检查周期 0.5 秒）才取消。
+    local_costmap_topic: /local_costmap/costmap_raw
+    local_costmap_freshness_timeout: 3.0
+    safety_transient_failure_cycles: 3
+    emergency_stop_clearance: 0.42
+    candidate_deduplication_distance: 0.30
+    # 每个 frontier 最多抽取 24 个空间均匀的真实边界锚点；该值同时
+    # 作为极端情况下全角度回退的角度分辨率。
+    candidate_angle_samples: 24
+    max_frontiers_to_consider: 20
+    max_viewpoints_per_frontier: 2
+    max_frontiers_to_evaluate: 6
+
+    # 导航失败只做可过期抑制；地图变化后会提前重新开放该区域。
+    blacklist_radius: 0.50
+    blacklist_ttl: 90.0
+    blacklist_map_revision_delta: 3
+
+    # 廉价预选以周边未知面积为主，前沿长度只作小幅补充；同时优先车头方向。
+    frontier_preselection_gain_weight: 1.4
+    information_gain_radius: 1.75
+    frontier_length_gain_weight: 0.35
+    candidate_heading_weight: 1.0
+    planner_id: GridBased
+    path_length_weight: 1.0
+    reverse_length_weight: 4.0
+    gear_switch_weight: 3.0
+    heading_change_weight: 1.0
+    steering_effort_weight: 0.35
+    clearance_weight: 0.8
+    information_gain_weight: 1.4
+    # 只允许短距离倒车脱困，拒绝把倒车当作主要探索方式。
+    # 比例限制用于阻止“主要靠倒车探索”；0.8 m 绝对长度仍是更强的安全上限。
+    max_reverse_fraction: 0.55
+    max_reverse_length: 0.80
+    max_gear_switches: 2
+
+    # 只有真正无 frontier 才允许结束。只要仍有 frontier，观察位净空不足、
+    # Hybrid-A* 暂不可达、黑名单全覆盖、地图陈旧或规划器无响应都只算受阻。
+    completion_stability_cycles: 3
+    # 首次记录起点后的保护期内不允许自动结束，避免初始地图仍在扩张时误完成。
+    completion_grace_period: 60.0
+
+    # Nav2 尚未完全 active 导致目标被拒绝时，不拉黑 frontier，重新验证后再试。
+    navigation_rejection_retry_delay: 5.0
+    # 探索器不再因 costmap/TF 暂时陈旧而清空两张代价地图。清图不能修复
+    # 时间链，反而会制造新的空窗；真正的导航恢复由 Nav2 行为树负责。
+
+    # 探索完成后返回首次记录的 map 坐标位姿；返航失败或超时仍保存地图。
+    return_to_start: true
+    return_timeout: 120.0
+
+    # autonomous_mapping.launch.py 启动同名服务，并同时提供周期备份。
+    save_on_completion: true
+    map_save_service: /map_autosaver/save_now
+    map_save_service_timeout: 10.0
+
+    # 保存完成（或明确超时）后重复发布零速并退出，让 launch 关闭整组进程。
+    cmd_vel_topic: /cmd_vel
+    final_stop_repeat_count: 10
+    final_stop_repeat_interval_ms: 20
+    exit_on_completion: true
+
+    visualize: true
+    dry_run: false

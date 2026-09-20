@@ -39,7 +39,9 @@
 #include <unistd.h>
 
 #include <functional>
+#include <cstdint>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 
 namespace explore
@@ -48,6 +50,39 @@ namespace explore
 std::array<unsigned char, 256> init_translation_table();
 static const std::array<unsigned char, 256> cost_translation_table__ =
     init_translation_table();
+
+namespace
+{
+
+std::uint64_t hashOccupancyGrid(const nav_msgs::msg::OccupancyGrid & map)
+{
+  // FNV-1a is sufficient here: the signature is only used to distinguish
+  // repeated slam_toolbox publications from actual map-content changes.
+  std::uint64_t hash = 1469598103934665603ULL;
+  const auto mix = [&hash](const std::uint8_t byte) {
+      hash ^= byte;
+      hash *= 1099511628211ULL;
+    };
+
+  const auto mix_value = [&mix](const auto & value) {
+      const auto * bytes = reinterpret_cast<const std::uint8_t *>(&value);
+      for (std::size_t index = 0; index < sizeof(value); ++index) {
+        mix(bytes[index]);
+      }
+    };
+
+  mix_value(map.info.width);
+  mix_value(map.info.height);
+  mix_value(map.info.resolution);
+  mix_value(map.info.origin.position.x);
+  mix_value(map.info.origin.position.y);
+  for (const auto cell : map.data) {
+    mix(static_cast<std::uint8_t>(cell));
+  }
+  return hash;
+}
+
+}  // namespace
 
 Costmap2DClient::Costmap2DClient(rclcpp::Node& node, const tf2_ros::Buffer* tf)
   : tf_(tf), node_(node)
@@ -86,10 +121,14 @@ Costmap2DClient::Costmap2DClient(rclcpp::Node& node, const tf2_ros::Buffer* tf)
   RCLCPP_INFO(node_.get_logger(),
               "Waiting for costmap to become available, topic: %s",
               costmap_topic.c_str());
-  while (!costmap_received_) {
+  while (rclcpp::ok() && !costmap_received_) {
     rclcpp::spin_some(node_.get_node_base_interface());
     // Wait for a second
     usleep(1000000);
+  }
+  if (!costmap_received_) {
+    throw std::runtime_error(
+            "ROS shutdown while waiting for the exploration costmap");
   }
   // updateFullMap(costmap_msg); // this is already called in the callback of
   // the costmap_sub_
@@ -143,6 +182,12 @@ Costmap2DClient::Costmap2DClient(rclcpp::Node& node, const tf2_ros::Buffer* tf)
 void Costmap2DClient::updateFullMap(
     const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
 {
+  const auto message_time = node_.now().nanoseconds();
+  last_map_message_ns_.store(message_time);
+  const auto signature = hashOccupancyGrid(*msg);
+  const bool map_changed =
+    signature != last_full_map_signature_.exchange(signature);
+
   global_frame_ = msg->header.frame_id;
 
   unsigned int size_in_cells_x = msg->info.width;
@@ -170,11 +215,18 @@ void Costmap2DClient::updateFullMap(
   }
   RCLCPP_DEBUG(node_.get_logger(), "map updated, written %lu values",
                costmap_size);
+
+  if (map_changed) {
+    map_revision_.fetch_add(1);
+    last_map_change_ns_.store(message_time);
+  }
 }
 
 void Costmap2DClient::updatePartialMap(
     const map_msgs::msg::OccupancyGridUpdate::SharedPtr msg)
 {
+  const auto message_time = node_.now().nanoseconds();
+  last_map_message_ns_.store(message_time);
   RCLCPP_DEBUG(node_.get_logger(), "received partial map update");
   global_frame_ = msg->header.frame_id;
 
@@ -209,13 +261,26 @@ void Costmap2DClient::updatePartialMap(
   // update map with data
   unsigned char* costmap_data = costmap_.getCharMap();
   size_t i = 0;
+  bool map_changed = false;
   for (size_t y = y0; y < yn && y < costmap_yn; ++y) {
     for (size_t x = x0; x < xn && x < costmap_xn; ++x) {
       size_t idx = costmap_.getIndex(x, y);
       unsigned char cell_cost = static_cast<unsigned char>(msg->data[i]);
-      costmap_data[idx] = cost_translation_table__[cell_cost];
+      const auto translated_cost = cost_translation_table__[cell_cost];
+      if (costmap_data[idx] != translated_cost) {
+        costmap_data[idx] = translated_cost;
+        map_changed = true;
+      }
       ++i;
     }
+  }
+
+  if (map_changed) {
+    map_revision_.fetch_add(1);
+    last_map_change_ns_.store(message_time);
+    // The next full map should establish a fresh signature for the updated
+    // content instead of being mistaken for a repeated pre-update snapshot.
+    last_full_map_signature_.store(0);
   }
 }
 
