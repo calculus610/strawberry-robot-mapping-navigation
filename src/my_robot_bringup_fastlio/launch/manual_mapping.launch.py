@@ -149,6 +149,7 @@ def generate_launch_description():
                 LaunchConfiguration('map_name'),
                 value_type=str,
             ),
+            'map_name_prefix': 'manual',
             'periodic_save_interval': ParameterValue(
                 LaunchConfiguration('map_autosave_interval'),
                 value_type=float,

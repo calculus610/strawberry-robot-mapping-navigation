@@ -179,6 +179,30 @@ def generate_launch_description():
         ),
     )
 
+    enable_map_autosave_arg = DeclareLaunchArgument(
+        'enable_map_autosave',
+        default_value='true',
+        description='Enable periodic, completion-triggered, and Ctrl-C map saves',
+    )
+
+    map_output_dir_arg = DeclareLaunchArgument(
+        'map_output_dir',
+        default_value='~/maps/autonomous_mapping',
+        description='Directory for autonomous Nav2 .pgm and .yaml map files',
+    )
+
+    map_name_arg = DeclareLaunchArgument(
+        'map_name',
+        default_value='',
+        description='Map prefix; empty creates autonomous_YYYYMMDD_HHMMSS',
+    )
+
+    map_autosave_interval_arg = DeclareLaunchArgument(
+        'map_autosave_interval',
+        default_value='60.0',
+        description='Periodic map backup interval in seconds; zero disables it',
+    )
+
     car_mode_arg = DeclareLaunchArgument(
         'car_mode',
         default_value='',
@@ -254,6 +278,10 @@ def generate_launch_description():
             'log_level': LaunchConfiguration('log_level'),
             'nav2_start_delay': LaunchConfiguration('nav2_start_delay'),
             'start_base': LaunchConfiguration('start_base'),
+            'enable_map_autosave': LaunchConfiguration('enable_map_autosave'),
+            'map_output_dir': LaunchConfiguration('map_output_dir'),
+            'map_name': LaunchConfiguration('map_name'),
+            'map_autosave_interval': LaunchConfiguration('map_autosave_interval'),
             'car_mode': LaunchConfiguration('car_mode'),
             'imu_mode': LaunchConfiguration('imu_mode'),
             'ranger_avoid_flag': LaunchConfiguration('ranger_avoid_flag'),
@@ -274,7 +302,22 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration('start_explorer')),
         parameters=[
             LaunchConfiguration('explorer_params_file'),
-            {'use_sim_time': LaunchConfiguration('use_sim_time')},
+            {
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'dry_run': LaunchConfiguration('explorer_dry_run'),
+                'return_to_start': ParameterValue(
+                    LaunchConfiguration('return_to_start'),
+                    value_type=bool,
+                ),
+                'return_timeout': ParameterValue(
+                    LaunchConfiguration('return_timeout'),
+                    value_type=float,
+                ),
+                'save_on_completion': ParameterValue(
+                    LaunchConfiguration('enable_map_autosave'),
+                    value_type=bool,
+                ),
+            },
         ],
     )
 
@@ -312,6 +355,10 @@ def generate_launch_description():
         return_to_start_arg,
         return_timeout_arg,
         start_base_arg,
+        enable_map_autosave_arg,
+        map_output_dir_arg,
+        map_name_arg,
+        map_autosave_interval_arg,
         car_mode_arg,
         imu_mode_arg,
         ranger_avoid_flag_arg,
