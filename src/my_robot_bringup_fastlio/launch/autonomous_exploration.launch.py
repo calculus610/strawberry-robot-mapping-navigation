@@ -70,8 +70,8 @@ def generate_launch_description():
 
     start_rviz_arg = DeclareLaunchArgument(
         'start_rviz',
-        default_value='false',
-        description='Launch RViz together with mapping (disabled by default for stability)',
+        default_value='true',
+        description='Launch RViz together with mapping',
     )
 
     rviz_config_arg = DeclareLaunchArgument(
