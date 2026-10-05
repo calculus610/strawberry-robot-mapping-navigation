@@ -6,6 +6,8 @@ devel/
 # Robot runtime data and remote sync recovery copies
 maps/
 .robot-sync-backups/
+/latest_autonomous_mapping_*.tar.gz
+/robot-downloads/
 
 .cache/
 .colcon/
