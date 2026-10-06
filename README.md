@@ -1,161 +1,78 @@
-# zzj_ws
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-ROS 2 Humble workspace for the Wheeltec R680 Ackermann (`senior_akm`) robot:
-chassis driver, FAST-LIO / slam_toolbox mapping and Nav2 autonomous
-exploration source for the Livox MID-360 based stack.
+# Strawberry Robot Mapping & Navigation
 
-Version-controlled content is kept in `src/` plus workspace-level documentation and helper files.
+This repository contains the **canonicalized recovered Mac development state** of the ROS 2 Humble mapping and navigation stack for the Wheeltec R680 Ackermann robot in a strawberry-harvesting robot project. It brings together chassis integration, a Livox MID-360 sensor pipeline, mapping, Nav2 navigation, and project-specific autonomous exploration. It is a recovered development workspace, **not a verified copy of the formal robot runtime**.
 
-Third-party robotics components (`FAST_LIO_ROS2`, `livox_ros_driver2`,
-`m-explore-ros2`, `turn_on_wheeltec_robot`, `wheeltec_robot_msg`, `depend/*`)
-are currently vendored in this repository at known upstream revisions, with
-project-specific patches applied locally. This keeps the robot-specific MID360
-integration changes available from a single clone. Repository-level third-party
-attribution will be finalized in a later provenance / repository-hygiene step
-during this recovery.
+## Project overview
 
-Conceptual data chain (the explorer does not implement Hybrid-A* itself;
-Nav2/Smac generates the paths, while `ackermann_explore` generates candidate
-observation poses and evaluates the planner-generated paths using
-Ackermann-relevant criteria):
+The stack uses FAST-LIO for lidar-inertial odometry, projects MID-360 data into a 2D scan for slam_toolbox mapping, and uses Nav2 for planned Ackermann motion. The project integrates these components with the Wheeltec chassis, launch lifecycle, map autosaving, and software stop mitigations. Upstream components remain upstream work; their presence here does not imply they were written from scratch for this project.
+
+## System architecture
 
 ```text
-Livox MID-360 -> FAST-LIO -> 2D scan projection / relay -> slam_toolbox
-  -> Nav2 (Smac Hybrid-A* + MPPI Ackermann) -> Ackermann-aware frontier explorer
+Livox MID-360 → Livox driver → FAST-LIO → 2D scan projection/relay → slam_toolbox map
+                                   ↘ odometry + map → Nav2 → Wheeltec Ackermann chassis
+Frontiers → ackermann_explore candidate observation poses → Nav2 planner paths
+          → Ackermann-aware path evaluation → navigation goals
 ```
 
-Generated build outputs are intentionally ignored:
+Nav2's Smac Hybrid-A* planner generates paths using a Reeds-Shepp motion model; its MPPI controller uses an Ackermann model. `ackermann_explore` **does not implement** `Hybrid-A*`: it proposes observation poses and evaluates planner-generated paths using criteria such as travel, reversing, and steering.
 
-- `build/`
-- `install/`
-- `log/`
+## Core capabilities
 
-The robot must provide the official Nav2 1.1.20 runtime:
+- Wheeltec R680 Ackermann chassis and Livox MID-360 integration.
+- FAST-LIO odometry, 2D scan projection, and slam_toolbox mapping.
+- Nav2 global planning with Smac Hybrid-A* / Reeds-Shepp and MPPI Ackermann control.
+- Ackermann-aware frontier exploration, candidate path checks, and navigation goal selection.
+- Periodic and exit-time map-save attempts, plus launch and runtime lifecycle coordination.
+- Chassis command watchdog, shutdown zero-velocity guard, and exploration completion stop attempts. These are **best-effort software mitigations**, not certified emergency-stop guarantees.
 
-```bash
-sudo apt update
-sudo apt install \
-  ros-humble-nav2-bringup \
-  ros-humble-nav2-mppi-controller \
-  ros-humble-pointcloud-to-laserscan
-```
+## Repository structure
 
-The Wheeltec chassis driver also requires the `serial` source package kept at
-`src/depend/serial_ros2`; it is pinned to upstream commit
-`def526d378501e0d19d0a8724971688a3b174080` because ROS Humble does not provide
-the compatible legacy `serial` API as an APT package.
+- `src/` — ROS 2 packages, including upstream/vendored sources, local patches, integration, and custom project code.
+- `docs/` — startup, architecture, workspace, and handover documentation.
+- `scripts/robot.sh` — historical Mac/robot helper; its Mac → robot synchronization commands are **SUSPENDED**.
+- `README.zh-CN.md` — full Simplified Chinese counterpart to this landing page.
 
-Do not add this workspace to the shared robot account's `.bashrc`. The helper
-always builds in a clean shell containing only `/opt/ros/humble` as the
-underlay.
+Generated `build/`, `install/`, and `log/` directories are not source-controlled.
 
-**HISTORICAL / SUSPENDED:** The sync workflow below is retained for reference.
-Do not run `sync-dry` or `sync` until robot-only state has been recovered and
-reconciled.
+## Runtime entry — reference only
 
-```bash
-./scripts/robot.sh sync-dry
-./scripts/robot.sh sync
-./scripts/robot.sh build
-./scripts/robot.sh shell
-```
-
-`shell` opens the robot workspace with `/opt/ros/humble/setup.bash` and
-`~/zzj_ws/install/setup.bash` already sourced, without reading `.bashrc`.
-Start autonomous exploration from that shell with:
-
-```bash
-ros2 launch my_robot_bringup_fastlio autonomous_exploration.launch.py
-```
-
-Sourcing `~/zzj_ws/install/setup.bash` activates a package environment hook
-which filters specified `*/install/nav2_*`, `dwb_*`, and `nav_2d_*`-style
-path entries in its handled environment variables. It retains `/opt/ros/humble`
-and nonmatching paths from this and other workspaces; it does not isolate every
-possible overlay. The autonomous launch checks that `nav2_bringup` and
-`nav2_mppi_controller` resolve to `/opt/ros/humble` before starting any robot
-process.
-
-Autonomous exploration uses the `ackermann_explore` executable by default.
-It waits until the Nav2 controller, planner, and BT navigator lifecycle nodes
-are all active before evaluating or sending a frontier goal. A temporarily
-rejected goal is retried without blacklisting the frontier, and automatic
-completion is disabled for the first 60 seconds after the start pose is
-recorded.
-Before the first motion test, run one selection cycle without sending a
-navigation goal:
-
-```bash
-ros2 launch my_robot_bringup_fastlio autonomous_exploration.launch.py \
-  explorer_dry_run:=true
-```
-
-RViz is optional. The recovered development launch starts it by default
-(`start_rviz=true`); for headless SSH sessions, systems without a display
-environment, or resource-constrained runs, pass `start_rviz:=false`.
-
-The mapping launches reuse the shared `robot-base.service` by default and do
-not start a second chassis driver. The FAST-LIO mapping and Nav2 chain uses the
-private `fastlio_base_footprint` frame so the shared EKF can continue owning
-`odom_combined -> base_footprint` without creating a multiple-parent TF tree.
-Only use `start_base:=true` after the shared chassis service has been stopped
-intentionally.
-
-If the service reports `active` but `/wheeltec_robot` or `/cmd_vel` is missing,
-restart and verify the complete chassis service from the Mac with:
-
-```bash
-./scripts/robot.sh restart-base
-```
-
-This may ask for the robot account's sudo password. It uses `systemctl restart`
-so any stale chassis process is stopped as part of the service cgroup before a
-new driver is started; it does not kill unrelated ROS processes by name.
-
-For a manual robot-side terminal, source this workspace and launch normally:
+The commands below describe the recovered development launch on a prepared, **robot-side-reconciled** ROS 2 Humble workspace. They are not approval to deploy this Mac state to the formal robot runtime.
 
 ```bash
 cd ~/zzj_ws
+source /opt/ros/humble/setup.bash
 source install/setup.bash
-ros2 launch my_robot_bringup_fastlio autonomous_exploration.launch.py
+ros2 launch my_robot_bringup_fastlio autonomous_exploration.launch.py explorer_dry_run:=true start_rviz:=false
 ```
 
-A plain robot terminal also reads the shared `.bashrc`; the Nav2 isolation is
-enforced by the environment hook installed with `install/setup.bash` together
-with the launch-time underlay assertion above.
+`explorer_dry_run:=true` runs one frontier/candidate/planner selection cycle without sending a `NavigateToPose` goal. It does not validate MPPI control, chassis behavior, or field safety. The documented normal launch omits that argument, but requires robot-side reconciliation and controlled validation first.
 
-For the historical Mac-edit/robot-build SSH workflow, see
-[`docs/REMOTE_DEVELOPMENT.md`](docs/REMOTE_DEVELOPMENT.md). That guide has not
-received its targeted recovery update and is **not approved for deployment**;
-its Mac-to-robot sync steps remain suspended. The helper script is
-`scripts/robot.sh`; it kept generated ROS build directories on the Ubuntu robot
-and synced source changes incrementally from the Mac.
+RViz is optional. The recovered development launch defaults to `start_rviz=true`; use `start_rviz:=false` for headless or resource-constrained sessions. The package environment hook filters selected conflicting Nav2 overlay paths, and the autonomous launch checks that key Nav2 packages resolve to `/opt/ros/humble`. These checks do not establish that the full robot runtime has been reconciled.
 
-## Caveats and open items
+**SUSPENDED:** Do not run `./scripts/robot.sh sync-dry`, `sync`, or `sync-build` as deployment steps. Mac → robot synchronization remains suspended until robot-only state is recovered and compared. The historical workflow is documented in [REMOTE_DEVELOPMENT.md](docs/REMOTE_DEVELOPMENT.md), which is **not currently approved for deployment**.
 
-- This repository is the **canonicalized recovered Mac development state** of
-  the project. The formal robot runtime is NOT fully reconciled with it.
-- The robot's formal `nav2_wheeltec_mid360.yaml` recorded on 2026-08-24
-  (SHA-256 prefix `15431e20...`) has not been recovered; the version here is the
-  latest Mac-preserved configuration, not a proven robot copy.
-- `/home/wheeltec/run_auto_mapping.sh` (robot-side startup entry) has not been
-  recovered.
-- Therefore **no Mac -> robot synchronization** may be performed from this
-  repository until the robot-only artifacts above are retrieved and diffed.
-- The 0.80 m minimum turning radius is a configured engineering assumption; the
-  repository holds no physical calibration evidence.
-- The recovered MPPI timing (15 Hz controller, `model_dt` 0.07) is a non-equal
-  configuration that triggers an upstream Humble warning (control-sequence
-  shifting off); see the technical stack document for details.
-- The recovered Ackermann exploration revision is a **current baseline under
-  active experimental evaluation**; the final historical revision lacks complete
-  end-to-end field-validation evidence.
+## Safety and recovery status
 
-## Documentation index
+- The formal robot runtime has **not** been fully reconciled with this canonicalized recovered Mac development state.
+- The robot-side 2026-08-24 `nav2_wheeltec_mid360.yaml` (SHA-256 prefix `15431e20...`) and `/home/wheeltec/run_auto_mapping.sh` have not been recovered. Mac → robot synchronization therefore remains suspended pending robot-side reconciliation.
+- The configured minimum turning radius of **0.80 m** is an engineering assumption, not a physically calibrated value.
+- The recovered MPPI timing of **15 Hz** with `model_dt=0.07` triggers the known ROS 2 Humble warning and leaves control-sequence shifting off.
+- The current Ackermann exploration revision is an experimental baseline; complete final end-to-end field-validation evidence is unavailable.
+- Map autosaving is a best-effort attempt. Its PGM/YAML pair is not transactionally atomic; verify both files before use.
+- Software watchdog and stop behavior cannot guarantee physical stopping or replace a hardware emergency stop.
 
-- Platform / runtime guide: [`src/README_WHEELTEC_MID360.md`](src/README_WHEELTEC_MID360.md)
-- Quick autonomous mapping startup: [`docs/自主建图启动说明.md`](docs/自主建图启动说明.md)
-- Technical stack and implementation: [`docs/手动建图与自主建图技术栈及实现原理.md`](docs/手动建图与自主建图技术栈及实现原理.md)
-- System handover manual: [`docs/手动建图与自主建图系统交接手册.md`](docs/手动建图与自主建图系统交接手册.md)
-- Workspace layout and repository rules: [`docs/WORKSPACE_LAYOUT.md`](docs/WORKSPACE_LAYOUT.md)
-- Historical, suspended Mac/robot remote workflow: [`docs/REMOTE_DEVELOPMENT.md`](docs/REMOTE_DEVELOPMENT.md)
+## Documentation
+
+- [Wheeltec MID-360 platform and runtime guide](src/README_WHEELTEC_MID360.md)
+- [Autonomous mapping startup guide](docs/自主建图启动说明.md)
+- [Manual and autonomous mapping technical stack](docs/手动建图与自主建图技术栈及实现原理.md)
+- [System handover manual](docs/手动建图与自主建图系统交接手册.md)
+- [Workspace layout and repository rules](docs/WORKSPACE_LAYOUT.md)
+- [Historical Mac/robot remote-development workflow — SUSPENDED](docs/REMOTE_DEVELOPMENT.md)
+
+## Third-party software and attribution
+
+This repository combines **upstream/vendored software** (including FAST-LIO, the Livox driver, m-explore, Wheeltec drivers, and supporting dependencies), **upstream software with local project patches**, **project configuration and integration**, and **project-specific implementations** such as `ackermann_explore`. Nav2 and slam_toolbox are upstream ROS components integrated and configured here, not original project implementations. Refer to package histories and the technical documentation for component-level context; this README does not claim a complete provenance inventory.
