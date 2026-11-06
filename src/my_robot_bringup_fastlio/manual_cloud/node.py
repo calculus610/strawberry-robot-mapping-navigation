@@ -139,6 +139,7 @@ class ManualCloudFilter(Node):
                 "free_frames": self.declare_parameter("free_frames", 4).value,
                 "free_seconds": self.declare_parameter("free_seconds", 0.3).value,
                 "endpoint_margin": self.declare_parameter("endpoint_margin_m", 0.15).value,
+                "max_clear_rays": self.declare_parameter("max_clear_rays", 2048).value,
             })
         else:
             self._map = StaticVoxelMap(voxel_size, max_voxels)

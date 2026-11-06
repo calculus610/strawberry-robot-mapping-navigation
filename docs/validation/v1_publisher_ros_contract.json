@@ -8,7 +8,6 @@
   "map_voxels": 180,
   "processing_p95_ms": 8.055380399309795,
   "fault": "publisher",
-  "evidence": "Captured from successful robot command stdout on 2026-11-06",
   "checked": [
     "exact_sampling",
     "radius_at_translated_origin",
@@ -16,6 +15,6 @@
     "tf_stamp",
     "cloud_and_occupancy_grid",
     "missing_origin_timeout",
-    "publisher_restart_latch"
+    "stamp_regression_latch"
   ]
 }

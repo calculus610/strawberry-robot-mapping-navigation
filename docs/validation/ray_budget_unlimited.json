@@ -1,0 +1,37 @@
+{
+  "recorded_input": null,
+  "synthetic_static_room": {
+    "scope": "Fixed origin and fixed room with seeded varying ray directions. Timings exclude generation and sampling.",
+    "allow_clear": true,
+    "max_clear_rays": 0,
+    "raw_points_per_frame": 6656,
+    "frames": 24,
+    "warmup_frames_excluded": 3,
+    "available_clear_rays_per_frame": {
+      "min": 6293.0,
+      "p50": 6333.0,
+      "p95": 6351.0,
+      "max": 6360.0
+    },
+    "clear_rays_per_frame": {
+      "min": 6293.0,
+      "p50": 6333.0,
+      "p95": 6351.0,
+      "max": 6360.0
+    },
+    "budget_skipped_per_frame": {
+      "min": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "update_ms": {
+      "min": 154.4366109992552,
+      "p50": 157.29708700018818,
+      "p95": 172.78712500046822,
+      "max": 200.06823100084148
+    },
+    "map_voxels": 8932,
+    "removed_voxels": 0
+  }
+}

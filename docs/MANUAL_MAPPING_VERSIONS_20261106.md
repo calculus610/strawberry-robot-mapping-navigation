@@ -64,3 +64,41 @@ MAKEFLAGS=-j1 colcon build --packages-select fast_lio my_robot_bringup_fastlio -
 支持证据：合成墙面的P90法向噪声7.09mm降至1.34mm，转角/细杆/门边保护和3m边界反例通过。最小实验依次为相同输入的原始、仅拟合、拟合后滤波，每轮只改变一个开关。任何真实细杆被删、门洞被补、墙面整体偏移都构成反证。真实场景无几何真值时不以视觉光滑宣称精度提升。
 
 V2实机验证：20/20单元测试通过；隔离ROS集成25帧通过，点云和二维地图可用，合成1000有效点的处理P95为36.4ms。详见 `docs/validation/v2_stamp_ros_contract.json`。该结果不等于完整路线的几何精度或实时性能验收。
+
+## V3：时序准入与可见空闲清理
+
+启动 `./scripts/start_manual_v3_temporal.sh`，地图自动存入 `~/maps/manual_mapping_v3`。V1/V2脚本仍可运行。每个5cm三维体素至少获得5帧、跨1秒的命中才准入；短暂停留可能被延迟准入。已准入点只有在后续至少4帧、跨0.3秒的明确空闲穿越后才移除。没有射线/被遮挡/不在范围内不计空闲，未知不会被当作free；不通过TTL删除静态地图。原始未平滑、未70%抽样回波用于3D射线与HIT保护，拟合后的点仅用于地图写入。
+
+射线基于当前估计光心。3m外真实回波可证明3m内的空闲，但不会在3m外或3m截断处创建障碍。最近角度回波、实际命中体素的停止格、端点15cm缓冲和相邻体素保护减少掠射误删；同帧HIT优先、同一体素每帧只计一次。新版本默认仅在光心速度<=0.05m/s、角速度<=0.10rad/s、帧间隔<=0.5s时清理，因为去畸变终点仍用扫描末光心近似逐束起点。运动时仍记录静态观测。停止后有有效背景观测才清理残影。
+
+开源选型：采用 [OctoMap](https://github.com/OctoMap/octomap) 的hit/free/unknown和命中优先语义，配合 [Amanatides–Woo 3D遍历](https://www.eecs.yorku.ca/~amana/research/grid.pdf)，以NumPy独立实现稀疏地图与批量射线；不是直接安装新的SLAM或动态感知框架。[DUFOMap](https://github.com/KTH-RPL/dufomap)（BSD-3-Clause）提供保守自由空间思路，作为后续离线基准候选。[FreeDOM](https://github.com/LC-Robotics/FreeDOM)（MIT）官方ROS1实现需要移植，当前不引入。[Removert](https://github.com/gisbi-kim/removert)上游未明确许可证，[ERASOR](https://github.com/LimHyungTae/ERASOR)（GPLv3）依赖地面高度先验，未直接引入当前Humble室内近距离链路。
+
+边界：全程静止的人员、停留超过准入门槛后没有背景穿越观测的人员，无法仅靠此方法保证排除。此模块用于建图残影清理，不做人类语义识别或底盘避障控制；实时安全障碍源由原导航系统负责，不能改接经过人员删除的地图替代实时障碍检测。
+
+最小对照实验：同一合成墙/人员轨迹只切动态开关，分别覆盖移动人、停留后离开、遮挡、永久静止、不同高度、3m外背景、同帧命中顺序、时间倒退及容量。支持证据须同时满足残影清除和静态墙/薄杆保留；只清掉更多点不是成功。真实录包若无配准/真值，仅用于输入分布和耗时测量，不能据此宣称人物准确率。
+
+## 实机验证与运行限制
+
+- ROS2 Humble / Jetson原生构建成功。37项算法测试通过（后续射线预算回归结果另记）。三个阶段分别通过实际ROS点云→过滤→高度投影测试；25帧合成输入均逐帧验证70%与3m，V3合成1000个有效点的处理P95约47.2ms。
+- 122帧真实雷达录包和2433条IMU经保留点时间的CustomMsg适配后驱动本次C++ FAST-LIO，输出119组点云、光心和TF精确时间戳交集。光心有119个不同估计值。Python消息构造使回放累计延迟约30.5s，因此这项仅验证实际接口与数据配对，不是1×实时性能验收。
+- 对60帧真实原始输入做离线分布/耗时测试：采样计数和范围错误均为0；V2拟合12212点、移除819个极端孤点。未经FAST-LIO质量和盲区筛选的数据不能作为真实建图真值；该测试使用身份位姿，动态清理明确关闭。
+- 同样的约6656回波合成静态房间，未限制射线的清理P95约195ms，超过10Hz单帧预算。这一观察触发单变量性能实验：只限制每帧用于清理的射线数量，原始命中/遮挡保护保留全量。
+
+上述验证证明软件合同和所列场景通过，尚未完成带行人/货架真值的完整路线精度与召回验收。5cm输出栅格仍可能显示斜墙阶梯；静止行人和被遮挡残影可能保留。
+
+最终射线预算A/B：同6656回波、同种子、24帧，`max_clear_rays=0` 与 `2048` 的实机清理P95分别为172.8ms、92.1ms；两组地图8932体素、静态移除0。默认2048只作用于空闲遍历，完整raw命中保护不抽样，跨帧轮换射线覆盖，代价是残影清除可能延后。单条支持射线的合成反例从0.6s清理延后到1.3s仍能完成。最终40/40算法测试通过，V3 ROS合成集成处理P95约44.9ms。完整SLAM/画图/大地图的10Hz实时预算仍取决于场景，不据此保证。
+
+## 版本与备份清单
+
+| 版本 | Git标签 | Git分支 | 工作区启动脚本 |
+|---|---|---|---|
+| 原始现场基线 | `manual-baseline-20261106` | `backup/manual-baseline-20261106` | 原 `src/my_robot_bringup_fastlio/scripts/start_manual_height_projection.sh`；新工作区也有 `scripts/start_manual_baseline.sh` |
+| V1 | `manual-v1-70pct-3m-20261106` | `manual/20261106-s1-70pct-3m` | `scripts/start_manual_v1_70pct_3m.sh` |
+| V2 | `manual-v2-smooth-20261106` | `manual/20261106-s2-smooth` | `scripts/start_manual_v2_smooth.sh` |
+| V3 | `manual-v3-temporal-20261106` | `manual/20261106-s3-temporal` | `scripts/start_manual_v3_temporal.sh` |
+
+远端为 `https://github.com/calculus610/strawberry-robot-mapping-navigation.git`。各版本使用独立分支和标签，没有强推main。机器人 `/home/wheeltec/zzj_ws_backups/20261106_manual_versions/` 保存完整基线、baseline/v1/v2/v3增量Git bundle及测试输出；bundle按基线→V1→V2→V3依赖顺序恢复，Git仓库中也已导入对应引用。`SHA256SUMS` 用于本地备份校验。工作区部署为最新源码，原Git当前分支与用户未提交工作保留。
+
+基线源码提交 `a697ac2`，V1源码标签提交 `3ad5849`（分支后续提交 `6ddd566`仅增加实机结果），V2提交 `1e9bd27`；V3以同名标签解析。最终源码改动限于FAST-LIO可选光心输出、my_robot_bringup_fastlio新增输出处理模块/配置/启动入口、版本脚本、测试和本说明。
+
+现场既有导航/雷达会话未被本次测试停止。新版本已部署但未代替现有硬件会话自动启动。切换时先通过原启动器结束其会话，再执行对应脚本。回放测试产生的FAST-LIO文本日志单独归档，原文本日志已恢复。

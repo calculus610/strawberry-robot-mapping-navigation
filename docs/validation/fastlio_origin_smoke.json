@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "recorded_clouds_replayed": 122,
+  "recorded_imus_replayed": 2433,
+  "first_input_cloud_stamp_ns": 1793959056327888576,
+  "last_input_cloud_stamp_ns": 1793959068426802400,
+  "minimum_input_point_offset_ns": 0,
+  "maximum_input_point_offset_ns": 108746752,
+  "target_replay_rate": 1.0,
+  "pacing_slip_s": 30.49030221999965,
+  "body_cloud_stamps": 119,
+  "origin_stamps": 119,
+  "camera_init_to_body_tf_stamps": 119,
+  "exact_cloud_origin_pairs": 119,
+  "exact_cloud_origin_tf_pairs": 119,
+  "first_exact_stamp_ns": 1793959056726615905,
+  "last_exact_stamp_ns": 1793959068525455474,
+  "origin_first_m": [
+    -0.010999899603805083,
+    -0.023289968061092865,
+    0.04411994767873951
+  ],
+  "origin_last_m": [
+    -0.010873802271428966,
+    -0.02321920967808322,
+    0.04401984966752278
+  ],
+  "unique_origin_positions": 119,
+  "max_origin_change_from_first_m": 0.00017607749679615802,
+  "finite_points_per_frame_min": 2450,
+  "finite_points_per_frame_max": 4644,
+  "within_3m_points_per_frame_min": 460,
+  "within_3m_points_per_frame_max": 1256,
+  "range_min_m": 0.49841928197703594,
+  "range_p95_m": 8.099030457754523,
+  "range_max_m": 12.363926648899477
+}

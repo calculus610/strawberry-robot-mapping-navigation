@@ -1,0 +1,168 @@
+{
+  "recorded_input": {
+    "scope": "Input distribution and stage timings only. Raw sensor coordinates were used with identity pose. No deskew, FAST-LIO registration, or true map replay. Raw index stride approximates point_filter_num=3 without FAST-LIO tag, line, blind-range, or duplicate filtering. Clearing was disabled.",
+    "bag": "/home/wheeltec/zzj_ws_backups/20261106_manual_versions/live_sensor_validation/live_sensor_validation_0.db3",
+    "topic": "/livox/lidar",
+    "bag_topic_messages": 122,
+    "frames_read": 60,
+    "first_cloud_layout": {
+      "frame_id": "livox_frame",
+      "height": 1,
+      "width": 21408,
+      "point_step": 26,
+      "row_step": 556608,
+      "is_bigendian": false,
+      "fields": [
+        {
+          "name": "x",
+          "offset": 0,
+          "datatype": 7,
+          "count": 1
+        },
+        {
+          "name": "y",
+          "offset": 4,
+          "datatype": 7,
+          "count": 1
+        },
+        {
+          "name": "z",
+          "offset": 8,
+          "datatype": 7,
+          "count": 1
+        },
+        {
+          "name": "intensity",
+          "offset": 12,
+          "datatype": 7,
+          "count": 1
+        },
+        {
+          "name": "tag",
+          "offset": 16,
+          "datatype": 2,
+          "count": 1
+        },
+        {
+          "name": "line",
+          "offset": 17,
+          "datatype": 2,
+          "count": 1
+        },
+        {
+          "name": "timestamp",
+          "offset": 18,
+          "datatype": 8,
+          "count": 1
+        }
+      ]
+    },
+    "header_span_s": 5.900557592,
+    "preprocess_stride": 3,
+    "range_m": 3.0,
+    "retention_percent": 70,
+    "raw_points_per_frame": {
+      "min": 14112.0,
+      "p50": 19968.0,
+      "p95": 21479.999999999996,
+      "max": 25824.0
+    },
+    "stride_points_per_frame": {
+      "min": 4704.0,
+      "p50": 6656.0,
+      "p95": 7159.999999999998,
+      "max": 8608.0
+    },
+    "v1": {
+      "counts_total": {
+        "input": 400448,
+        "nonfinite": 0,
+        "finite": 400448,
+        "outside_range": 150788,
+        "in_range": 249660,
+        "sampled": 174734
+      },
+      "eligible_per_frame": {
+        "min": 2701.0,
+        "p50": 4108.0,
+        "p95": 4815.4,
+        "max": 5220.0
+      },
+      "selected_per_frame": {
+        "min": 1890.0,
+        "p50": 2875.5,
+        "p95": 3370.3999999999996,
+        "max": 3654.0
+      },
+      "radius_count_mismatches": 0,
+      "selection_count_mismatches": 0,
+      "selected_outside_range": 0,
+      "min_selected_distance_m": 0.0,
+      "max_selected_distance_m": 2.9998616308327812,
+      "sample_ms": {
+        "min": 1.017057000353816,
+        "p50": 1.190422000036051,
+        "p95": 1.583115500852725,
+        "max": 3.603987999667879
+      }
+    },
+    "v2": {
+      "counts_total": {
+        "input_count": 174734,
+        "finite_count": 174734,
+        "nonfinite_count": 0,
+        "smoothed_count": 12212,
+        "outlier_candidates": 1115,
+        "outlier_vetoed": 296,
+        "outlier_removed": 819,
+        "output_count": 173915,
+        "outside_range_after_smoothing": 0
+      },
+      "smooth_and_filter_ms": {
+        "min": 39.483644999563694,
+        "p50": 70.3108659999998,
+        "p95": 96.79479789992911,
+        "max": 107.85817599935399
+      }
+    },
+    "v3": {
+      "allow_clear": false,
+      "update_statuses": {
+        "ok": 60
+      },
+      "totals": {
+        "admitted": 1614,
+        "removed": 0,
+        "clear_rays": 0
+      },
+      "map_voxels": 1614,
+      "update_ms": {
+        "min": 2.8014670006086817,
+        "p50": 3.4950090002894285,
+        "p95": 4.199267548938223,
+        "max": 5.005185999834794
+      }
+    }
+  },
+  "synthetic_static_room": {
+    "scope": "Fixed origin and fixed room with seeded varying ray directions. Timings exclude generation and sampling.",
+    "allow_clear": true,
+    "raw_points_per_frame": 6656,
+    "frames": 24,
+    "warmup_frames_excluded": 3,
+    "clear_rays_per_frame": {
+      "min": 6293.0,
+      "p50": 6333.0,
+      "p95": 6351.0,
+      "max": 6360.0
+    },
+    "update_ms": {
+      "min": 150.74145099970337,
+      "p50": 155.68682699995406,
+      "p95": 194.99465900116775,
+      "max": 248.59530499998073
+    },
+    "map_voxels": 8932,
+    "removed_voxels": 0
+  }
+}

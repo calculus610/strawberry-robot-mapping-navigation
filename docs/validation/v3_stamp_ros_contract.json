@@ -1,0 +1,20 @@
+{
+  "stage": 3,
+  "passed": true,
+  "processed_frames": 25,
+  "points_in_range": 1000,
+  "sampled_each_frame": 700,
+  "projected_maps": 6,
+  "map_voxels": 180,
+  "processing_p95_ms": 44.876446599300834,
+  "fault": "stamp",
+  "checked": [
+    "exact_sampling",
+    "radius_at_translated_origin",
+    "nan_and_far_rejection",
+    "tf_stamp",
+    "cloud_and_occupancy_grid",
+    "missing_origin_timeout",
+    "stamp_restart_latch"
+  ]
+}

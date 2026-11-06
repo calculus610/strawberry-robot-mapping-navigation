@@ -1,0 +1,11 @@
+{
+  "platform": "robot Python 3.10 / ROS 2 Humble",
+  "command": "PYTHONPATH=src/my_robot_bringup_fastlio python3 -m unittest discover -s tests/manual_mapping -p test_*.py -v",
+  "tests_run": 40,
+  "passed": true,
+  "elapsed_seconds": 1.106,
+  "sampling_tests": 8,
+  "smoothing_tests": 12,
+  "temporal_tests": 20,
+  "evidence": "Robot stdout: Ran 40 tests in 1.106s; OK"
+}
