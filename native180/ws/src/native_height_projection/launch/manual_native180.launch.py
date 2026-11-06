@@ -8,6 +8,7 @@ from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -16,7 +17,8 @@ def generate_launch_description():
     fastlio = Node(
         package='fast_lio', executable='fastlio_mapping', output='screen',
         parameters=[str(share / 'config/native180_fastlio.yaml'),
-                    {'map_file_path': [session, '/native_map_final_camera_init.pcd']}],
+                    {'map_file_path': [session, '/native_map_final_camera_init.pcd'],
+                     'optimization.stage': ParameterValue(LaunchConfiguration('optimization_stage'), value_type=int)}],
         remappings=[('/Laser_map', '/fastlio/native_map'), ('/map_save', '/native_map_save')])
     projector = Node(
         package='native_height_projection', executable='native_height_projector.py', output='screen',
@@ -37,4 +39,5 @@ def generate_launch_description():
         DeclareLaunchArgument('session_dir', description='Unique output directory'),
         DeclareLaunchArgument('start_rviz', default_value='true'),
         DeclareLaunchArgument('start_lidar', default_value='true'),
+        DeclareLaunchArgument('optimization_stage', default_value='0'),
         *handlers, projector, driver, TimerAction(period=2.0, actions=[fastlio]), rviz])

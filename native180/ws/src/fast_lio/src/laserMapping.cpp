@@ -38,6 +38,7 @@
 #include <math.h>
 #include <thread>
 #include <fstream>
+#include <sstream>
 #include <csignal>
 #include <chrono>
 #include <cstdint>
@@ -66,6 +67,8 @@
 #include <livox_ros_driver2/msg/custom_msg.hpp>
 #include "preprocess.h"
 #include "native_height_export.hpp"
+#include "native_cloud_filters.hpp"
+#include <std_msgs/msg/string.hpp>
 #include <ikd-Tree/ikd_Tree.h>
 
 #define INIT_TIME           (0.1)
@@ -346,6 +349,12 @@ bool native_map_export = false;
 bool forward180 = false;
 double native_bottom_height = 0.20;
 NativeHeightReference native_reference;
+int optimization_stage = 0;
+native_filter::Options optimization_options;
+native_filter::Stats optimization_stats;
+PointCloudXYZI::Ptr raw_forward_observation(new PointCloudXYZI());
+std::size_t optimization_forward_points = 0;
+
 
 bool snapshot_native_map()
 {
@@ -791,8 +800,10 @@ void publish_free_observation(
 {
     if (!native_map_export || !native_reference.ready) return;
     pcl::PointCloud<pcl::PointXYZ> points;
-    points.reserve(feats_undistort->size());
-    for (const auto &p : feats_undistort->points)
+    // Free-space evidence always uses true, unthinned, unsmoothed observations.
+    const auto &observation = optimization_stage ? raw_forward_observation : feats_undistort;
+    points.reserve(observation->size());
+    for (const auto &p : observation->points)
         points.push_back(pcl::PointXYZ(p.x, p.y, p.z));
     sensor_msgs::msg::PointCloud2 cloud;
     pcl::toROSMsg(points, cloud);
@@ -1161,6 +1172,19 @@ public:
         native_map_export = this->declare_parameter<bool>("experiment.native_map_export", false);
         forward180 = this->declare_parameter<bool>("experiment.forward180", false);
         native_bottom_height = this->declare_parameter<double>("experiment.sensor_bottom_height", 0.20);
+        optimization_stage = this->declare_parameter<int>("optimization.stage", 0);
+        optimization_options.max_range = this->declare_parameter<double>("optimization.max_range_m", 3.0);
+        optimization_options.retention_percent = this->declare_parameter<int>("optimization.retention_percent", 70);
+        optimization_options.smoothing = optimization_stage >= 2;
+        if (optimization_stage < 0 || optimization_stage > 1 ||
+            !std::isfinite(optimization_options.max_range) || optimization_options.max_range <= 0.0 ||
+            optimization_options.retention_percent < 1 || optimization_options.retention_percent > 100 ||
+            (optimization_stage && (!forward180 || !native_map_export)))
+            throw std::invalid_argument("Invalid native mapping optimization parameters");
+        optimization_metrics_pub_ = this->create_publisher<std_msgs::msg::String>(
+            "/fastlio/optimization_metrics", rclcpp::QoS(20).reliable());
+        matching_input_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+            "/fastlio/matching_input", rclcpp::SensorDataQoS().keep_last(5));
         native_reference_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
             "/fastlio/native_height_reference", rclcpp::QoS(1).reliable().transient_local());
         free_scan_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
@@ -1168,8 +1192,8 @@ public:
         free_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
             "/fastlio/free_scan_pose", rclcpp::SensorDataQoS().keep_last(5));
         RCLCPP_INFO(this->get_logger(),
-            "EXPERIMENT native_ikdtree_export=%d forward180_after_deskew=%d bottom_height=%.3f; native map update unchanged",
-            native_map_export, forward180, native_bottom_height);
+            "EXPERIMENT native_ikdtree_export=%d forward180_after_deskew=%d bottom_height=%.3f optimization_stage=%d",
+            native_map_export, forward180, native_bottom_height, optimization_stage);
         this->declare_parameter<bool>("publish.path_en", true);
         this->declare_parameter<bool>("publish.effect_map_en", false);
         this->declare_parameter<bool>("publish.map_en", false);
@@ -1510,6 +1534,17 @@ private:
                 if (feats_undistort->empty()) return;
             }
 
+            optimization_forward_points = feats_undistort->size();
+            optimization_stats = native_filter::Stats();
+            if (optimization_stage > 0)
+            {
+                *raw_forward_observation = *feats_undistort;
+                optimization_stats = native_filter::filter(*feats_undistort,
+                    Lidar_R_wrt_IMU, optimization_options);
+            }
+            if (optimization_stage > 0) publish_optimization_diagnostics();
+            if (feats_undistort->empty()) return;
+
             flg_EKF_inited = (Measures.lidar_beg_time - first_lidar_time) < INIT_TIME ? \
                             false : true;
             /*** Segment the map in lidar FOV ***/
@@ -1632,6 +1667,42 @@ private:
         }
     }
 
+    void publish_optimization_diagnostics()
+    {
+        double max_range = 0.0;
+        std::size_t behind = 0;
+        for (const auto &p : feats_undistort->points)
+        {
+            const V3D xyz(p.x, p.y, p.z);
+            max_range = std::max(max_range, xyz.norm());
+            if ((Lidar_R_wrt_IMU * xyz).x() < -1e-7) ++behind;
+        }
+        std::ostringstream out;
+        out << std::setprecision(15)
+            << "{\"stage\":" << optimization_stage
+            << ",\"stamp_ns\":" << get_ros_time(lidar_end_time).nanoseconds()
+            << ",\"forward_points\":" << optimization_forward_points
+            << ",\"eligible_points\":" << optimization_stats.eligible_count
+            << ",\"sampled_points\":" << optimization_stats.sampled_count
+            << ",\"matching_input_points\":" << feats_undistort->size()
+            << ",\"matching_behind_points\":" << behind
+            << ",\"matching_max_range_m\":" << max_range
+            << ",\"smoothing_moved\":" << optimization_stats.smoothed_count
+            << ",\"smoothing_removed\":" << optimization_stats.outlier_removed
+            << ",\"native_admitted\":0,\"native_removed\":0}";
+        std_msgs::msg::String message;
+        message.data = out.str();
+        optimization_metrics_pub_->publish(message);
+        if (matching_input_pub_->get_subscription_count() > 0)
+        {
+            sensor_msgs::msg::PointCloud2 cloud;
+            pcl::toROSMsg(*feats_undistort, cloud);
+            cloud.header.stamp = get_ros_time(lidar_end_time);
+            cloud.header.frame_id = "native_scan_lidar";
+            matching_input_pub_->publish(cloud);
+        }
+    }
+
     void map_publish_callback()
     {
         if (native_map_export && native_reference.ready)
@@ -1700,6 +1771,8 @@ private:
     bool flg_EKF_converged, EKF_stop_flg = 0;
     double epsi[23] = {0.001};
 
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr optimization_metrics_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr matching_input_pub_;
     FILE *fp;
     ofstream fout_pre, fout_out, fout_dbg;
 };

@@ -1,0 +1,23 @@
+test_capacity_rejects_instead_of_silent_clipping (<run_path>.ProjectionTests.test_capacity_rejects_instead_of_silent_clipping) ... ok
+test_each_snapshot_removes_disappeared_native_points (<run_path>.ProjectionTests.test_each_snapshot_removes_disappeared_native_points) ... ok
+test_height_boundaries_and_ground_exclusion (<run_path>.ProjectionTests.test_height_boundaries_and_ground_exclusion) ... ok
+test_negative_coordinates_and_five_cm_resolution (<run_path>.ProjectionTests.test_negative_coordinates_and_five_cm_resolution) ... ok
+test_nonfinite_points_do_not_expand_map (<run_path>.ProjectionTests.test_nonfinite_points_do_not_expand_map) ... ok
+test_same_angle_different_ranges_are_both_kept (<run_path>.ProjectionTests.test_same_angle_different_ranges_are_both_kept) ... ok
+test_tilted_native_frame_uses_ground_height (<run_path>.ProjectionTests.test_tilted_native_frame_uses_ground_height) ... ok
+test_tray_survives_under_tray_ground_returns (<run_path>.ProjectionTests.test_tray_survives_under_tray_ground_returns) ... ok
+test_all_layers_required (<run_path>.FreeTests.test_all_layers_required) ... ok
+test_endpoint_and_blind_region_not_marked_free (<run_path>.FreeTests.test_endpoint_and_blind_region_not_marked_free) ... ok
+test_free_evidence_cannot_change_canvas_or_black_cells (<run_path>.FreeTests.test_free_evidence_cannot_change_canvas_or_black_cells) ... ok
+test_ground_ray_alone_does_not_clear_tray (<run_path>.FreeTests.test_ground_ray_alone_does_not_clear_tray) ... ok
+test_negative_coordinates_and_bounds_pruning (<run_path>.FreeTests.test_negative_coordinates_and_bounds_pruning) ... ok
+test_parallel_outside_height_and_nonfinite_are_not_evidence (<run_path>.FreeTests.test_parallel_outside_height_and_nonfinite_are_not_evidence) ... ok
+test_raw_endpoint_vetoes_free_even_if_not_in_native_map (<run_path>.FreeTests.test_raw_endpoint_vetoes_free_even_if_not_in_native_map) ... ok
+test_repeated_single_layer_does_not_prove_column (<run_path>.FreeTests.test_repeated_single_layer_does_not_prove_column) ... ok
+test_serialized_masks_reproduce_free_grid (<run_path>.FreeTests.test_serialized_masks_reproduce_free_grid) ... ok
+test_tray_blocks_white_and_discards_old_free_evidence (<run_path>.FreeTests.test_tray_blocks_white_and_discards_old_free_evidence) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.387s
+
+OK

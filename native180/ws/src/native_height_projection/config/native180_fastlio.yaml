@@ -57,3 +57,7 @@
       native_map_export: true
       forward180: true
       sensor_bottom_height: 0.2
+    optimization:
+      stage: 0
+      max_range_m: 3.0
+      retention_percent: 70
