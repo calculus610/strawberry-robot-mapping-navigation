@@ -1,0 +1,8 @@
+native_height_projector:
+  ros__parameters:
+    min_height: 0.10
+    max_height: 1.00
+    resolution: 0.05
+    max_grid_cells: 10000000
+    # Nine height bins; each needs actual ray traversal, not missing endpoints.
+    free_height_step: 0.10

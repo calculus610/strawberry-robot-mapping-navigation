@@ -1,0 +1,8 @@
+ws/build/
+ws/install/
+ws/log/
+__pycache__/
+*.pyc
+session.lock
+ws/src/fast_lio/Log/*
+!ws/src/fast_lio/Log/.gitkeep
