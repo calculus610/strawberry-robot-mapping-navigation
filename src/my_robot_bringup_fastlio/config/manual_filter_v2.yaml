@@ -1,0 +1,7 @@
+manual_cloud_filter:
+  ros__parameters:
+    stage: 2
+    max_range_m: 3.0
+    retention_percent: 70
+    voxel_size_m: 0.05
+    max_voxels: 500000

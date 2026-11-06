@@ -54,3 +54,13 @@ MAKEFLAGS=-j1 colcon build --packages-select fast_lio my_robot_bringup_fastlio -
 ## V1 验证结果
 
 机器人原生构建 fast_lio 与 my_robot_bringup_fastlio 成功；原有 PCL CMake/Boost 编译提示保留。8项采样/解码/容量测试通过。隔离 ROS 域实际运行两轮合成输入，每轮25帧，1000个范围内有效点每帧恰好保留700点；收到真实PointCloud2和OccupancyGrid输出。缺少光心被拒绝；时间回退、发布者端点更换均锁定新输入，原图保留。端点检测依赖DDS发现，不是逐消息来源认证。耗时P95约8.9ms（合成1000有效点，不是整机完整SLAM负载）。结果见 docs/validation/v1_*_ros_contract.json。
+
+## V2：保守拟合后移除极端离群点
+
+启动 `./scripts/start_manual_v2_smooth.sh`，地图自动存入 `~/maps/manual_mapping_v2`。先执行V1，再做一阶局部加权最小二乘平面拟合，保持Z，仅对近垂直且二维邻域充分的平面限幅修正XY。12cm邻域、至少10点、两项特征值门槛和切向双侧支撑保护转角、立柱和门洞；最大位移1.5cm。投影若越过3m则保留原坐标。之后仅删除kNN距离超过均值3σ、最近邻距离>=15cm、且抽样前完整有限点云10cm内没有支撑的极端孤点。完整支撑包含3m边界外回波，但输出不超3m。世界坐标复检允许1nm浮点误差。
+
+这是基于成熟MLS/SOR原理的独立NumPy/SciPy实现，未把PCL直接链接到新节点。PCL采用BSD-3-Clause；SciPy/NumPy由机器人现有软件包提供。参考 [PCL MLS源码](https://github.com/PointCloudLibrary/pcl/blob/pcl-1.12.1/surface/include/pcl/surface/impl/mls.hpp)、[SOR源码](https://github.com/PointCloudLibrary/pcl/blob/pcl-1.12.1/filters/include/pcl/filters/impl/statistical_outlier_removal.hpp)、[PCL许可证](https://github.com/PointCloudLibrary/pcl/blob/pcl-1.12.1/LICENSE.txt)。全局RANSAC直线可能跨门洞拼接，不用于这片3D墙面；高阶MLS可能圆化转角，当前选择局部一阶近似曲面。
+
+支持证据：合成墙面的P90法向噪声7.09mm降至1.34mm，转角/细杆/门边保护和3m边界反例通过。最小实验依次为相同输入的原始、仅拟合、拟合后滤波，每轮只改变一个开关。任何真实细杆被删、门洞被补、墙面整体偏移都构成反证。真实场景无几何真值时不以视觉光滑宣称精度提升。
+
+V2实机验证：20/20单元测试通过；隔离ROS集成25帧通过，点云和二维地图可用，合成1000有效点的处理P95为36.4ms。详见 `docs/validation/v2_stamp_ros_contract.json`。该结果不等于完整路线的几何精度或实时性能验收。
