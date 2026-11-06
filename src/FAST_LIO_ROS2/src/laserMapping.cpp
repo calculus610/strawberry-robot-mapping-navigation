@@ -62,6 +62,7 @@
 #include <std_srvs/srv/trigger.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/msg/transform_stamped.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
 #include <livox_ros_driver2/msg/custom_msg.hpp>
 #include "preprocess.h"
@@ -819,7 +820,9 @@ void publish_frame_world(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::Share
     */
 }
 
-void publish_frame_body(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_body)
+void publish_frame_body(
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_body,
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pubLidarOrigin)
 {
     // Match /cloud_registered semantics: dense_publish_en=false must also
     // downsample the body-frame cloud.  The old implementation always sent
@@ -839,6 +842,22 @@ void publish_frame_body(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::Shared
     pcl::toROSMsg(*laserCloudIMUBody, laserCloudmsg);
     laserCloudmsg.header.stamp = get_ros_time(lidar_end_time);
     laserCloudmsg.header.frame_id = "body";
+    if (pubLidarOrigin)
+    {
+        // The same estimated extrinsic and scan-end stamp used for this cloud.
+        // This optional observation does not add or alter a TF edge.
+        geometry_msgs::msg::PoseStamped origin;
+        origin.header = laserCloudmsg.header;
+        origin.pose.position.x = state_point.offset_T_L_I.x();
+        origin.pose.position.y = state_point.offset_T_L_I.y();
+        origin.pose.position.z = state_point.offset_T_L_I.z();
+        const Eigen::Quaterniond rotation(state_point.offset_R_L_I.toRotationMatrix());
+        origin.pose.orientation.x = rotation.x();
+        origin.pose.orientation.y = rotation.y();
+        origin.pose.orientation.z = rotation.z();
+        origin.pose.orientation.w = rotation.w();
+        pubLidarOrigin->publish(origin);
+    }
     pubLaserCloudFull_body->publish(laserCloudmsg);
     publish_count -= PUBFRAME_PERIOD;
 }
@@ -1098,6 +1117,7 @@ public:
         this->declare_parameter<bool>("publish.scan_publish_en", true);
         this->declare_parameter<bool>("publish.dense_publish_en", true);
         this->declare_parameter<bool>("publish.scan_bodyframe_pub_en", true);
+        this->declare_parameter<bool>("publish.manual_lidar_origin_en", false);
         this->declare_parameter<int>("max_iteration", 4);
         this->declare_parameter<string>("map_file_path", "");
         this->declare_parameter<string>("common.lid_topic", "/livox/lidar");
@@ -1232,6 +1252,11 @@ public:
             "/cloud_registered", rclcpp::SensorDataQoS().keep_last(1));
         pubLaserCloudFull_body_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
             "/cloud_registered_body", rclcpp::SensorDataQoS().keep_last(1));
+        if (this->get_parameter("publish.manual_lidar_origin_en").as_bool())
+        {
+            pubLidarOrigin_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+                "/manual_mapping/lidar_origin_body", rclcpp::SensorDataQoS().keep_last(10));
+        }
         pubLaserCloudEffect_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
             "/cloud_effected", rclcpp::SensorDataQoS().keep_last(1));
         pubLaserCloudMap_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
@@ -1479,7 +1504,7 @@ private:
             /******* Publish points *******/
             if (path_en)                         publish_path(pubPath_);
             if (scan_pub_en)      publish_frame_world(pubLaserCloudFull_);
-            if (scan_pub_en && scan_body_pub_en) publish_frame_body(pubLaserCloudFull_body_);
+            if (scan_pub_en && scan_body_pub_en) publish_frame_body(pubLaserCloudFull_body_, pubLidarOrigin_);
             if (effect_pub_en) publish_effect_world(pubLaserCloudEffect_);
             // if (map_pub_en) publish_map(pubLaserCloudMap_);
 
@@ -1539,6 +1564,7 @@ private:
 private:
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_body_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pubLidarOrigin_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudEffect_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudMap_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubOdomAftMapped_;

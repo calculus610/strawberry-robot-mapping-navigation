@@ -1,0 +1,183 @@
+# Versioned manual output pipeline; estimator and calibration parameters match baseline.
+# Dense deskew observations feed the 70%/3m filter; accumulated output is /manual_mapping/filtered_map.
+# FAST-LIO cumulative cache and its PCD service are disabled in this profile.
+# FAST-LIO2 + Livox MID360 参数文件
+#
+# 使用说明：
+#   1. 顶层的 "/**" 表示这些参数可应用到任意节点名，当前由 /laser_mapping 加载。
+#   2. 本配置配套 livox_ros_driver2 的 msg_MID360_launch.py 使用；该驱动发布
+#      livox_ros_driver2/msg/CustomMsg，而不是供 RViz 直接显示的 PointCloud2。
+#   3. 修改本文件后需要重启 FAST-LIO 节点。当前 install 目录使用符号链接时通常无需重新编译。
+#   4. 数值越小不一定越精确：更密的点云、更小的体素和更多迭代都会明显增加 CPU 与内存负载。
+/**:
+    ros__parameters:
+        # 是否启用传统的线、面特征提取。
+        # false：不显式提取角点，直接使用经过筛选的面点，FAST-LIO2 常用设置。
+        # true ：启用特征提取，计算量更大，而且需要正确设置扫描线数等参数。
+        feature_extract_enable: false
+
+        # 点云预处理抽样步长：大约每 3 个有效点保留 1 个。
+        # 增大可降低 CPU/内存占用，但点云会更稀疏；减小可保留更多细节但负载更高。
+        point_filter_num: 3
+
+        # 每帧迭代扩展卡尔曼滤波（IEKF）的最大迭代次数。
+        # 增大可能改善较难场景的收敛，但会增加每帧计算时间。
+        max_iteration: 3
+
+        # 当前扫描帧用于匹配前的体素滤波叶子尺寸，单位：米。
+        # 0.5 表示使用约 0.5 m 体素降采样；越小点越密、计算越慢。
+        filter_size_surf: 0.2
+
+        # 增量地图写入 ikd-Tree 时的体素尺寸，单位：米。
+        # 越小地图细节越丰富，同时占用更多内存并增加近邻搜索开销。
+        filter_size_map: 0.5
+
+        # FAST-LIO 局部地图立方体边长，单位：米。
+        # 机器人接近立方体边缘时，局部地图窗口会随机器人移动并删除远端地图块。
+        # 该值应显著大于 mapping.det_range；过大将增加地图内存占用。
+        cube_side_length: 1000.0
+
+        # 是否记录运行时位姿、匹配耗时等调试数据到 FAST_LIO_ROS2/Log。
+        # 开启会产生磁盘写入，实时运行时通常保持 false。
+        runtime_pos_log_enable: false
+
+        # 调用 /map_save 服务时写入的 PCD 文件路径。
+        # 相对路径相对于节点进程的工作目录；需要固定位置时建议改成绝对路径。
+        map_file_path: "/home/wheeltec/maps/manual_mapping/fastlio_3d_20261011_153859.pcd"
+
+        # ------------------------------------------------------------------
+        # 雷达、IMU 话题及时间同步
+        # ------------------------------------------------------------------
+        common:
+            # MID360 点云输入。lidar_type=1 时消息类型必须是
+            # livox_ros_driver2/msg/CustomMsg，需使用 msg_MID360_launch.py。
+            lid_topic:  "/livox/lidar"
+
+            # MID360 内置 IMU 输入，消息类型为 sensor_msgs/msg/Imu。
+            imu_topic:  "/livox/imu"
+
+            # 是否使用 FAST-LIO 内部的软件时间同步。
+            # false：推荐；当雷达与 IMU 来自同一 MID360 驱动/硬件时应保持关闭。
+            # true ：仅在两者时间基准确实不同且没有硬件同步手段时尝试使用，精度有限。
+            time_sync_en: false
+
+            # 雷达相对于 IMU 的固定时间偏移，单位：秒。
+            # 无论 time_sync_en 是否开启都会生效；应使用 LI-Init 等标定结果。
+            # 未知时必须保持 0.0，不要凭感觉填写，否则会造成运动畸变和位姿漂移。
+            time_offset_lidar_to_imu: 0.0
+
+        # ------------------------------------------------------------------
+        # 点云预处理
+        # ------------------------------------------------------------------
+        preprocess:
+            # 雷达输入类型（以本仓库 preprocess.h 中的枚举为准）：
+            #   1 = Livox CustomMsg（当前 MID360 驱动模式）
+            #   2 = Velodyne PointCloud2
+            #   3 = Ouster PointCloud2
+            #   4 = MID360 PointCloud2 处理器
+            # 当前 msg_MID360_launch.py 输出 CustomMsg，所以这里必须为 1。
+            lidar_type: 1
+
+            # 有效扫描线/通道数量。MID360 CustomMsg 中 line 编号应小于该值。
+            # 配成 4 可接收 MID360 的 4 个通道；过小会丢弃部分点。
+            scan_line: 4
+
+            # 雷达盲区半径，单位：米。距离雷达原点小于 0.5 m 的点会被剔除。
+            # 可用于去除雷达自身附近、车体表面及近距离噪点。
+            blind: 0.5
+
+            # PointCloud2 中逐点时间字段的单位：
+            #   0 = 秒，1 = 毫秒，2 = 微秒，3 = 纳秒。
+            # 当前 lidar_type=1 使用 CustomMsg 自带 offset_time，该项通常不参与换算；
+            # 切换到 PointCloud2 输入时必须与实际字段单位一致。
+            timestamp_unit: 3
+
+            # 雷达扫描/发布频率，单位：Hz。
+            # 当输入缺少可靠的逐点时间时用于估算扫描内时间；当前驱动默认约 10 Hz。
+            scan_rate: 10
+
+        # ------------------------------------------------------------------
+        # 状态估计、局部地图与雷达—IMU 外参
+        # ------------------------------------------------------------------
+        mapping:
+            # IMU 加速度测量噪声协方差。数值越大，滤波器越不信任加速度测量。
+            acc_cov: 0.1
+
+            # IMU 角速度测量噪声协方差。数值越大，滤波器越不信任陀螺仪测量。
+            gyr_cov: 0.1
+
+            # 加速度计零偏随机游走协方差，控制零偏随时间变化的幅度。
+            b_acc_cov: 0.0001
+
+            # 陀螺仪零偏随机游走协方差，控制零偏随时间变化的幅度。
+            b_gyr_cov: 0.0001
+
+            # 用于地图匹配/局部地图管理的雷达水平视场角，单位：度。
+            # 360.0 表示使用 MID360 水平方向完整一圈，不是裁成 180°。
+            fov_degree: 360.0
+
+            # 建图匹配的探测范围参数，单位：米。
+            # 它还参与局部地图窗口移动阈值计算；并非二维 /scan 的 range_max。
+            # 二维扫描的最大距离由 pointcloud_to_laserscan_fastlio.yaml 单独控制。
+            det_range: 100.0
+
+            # 是否在线估计雷达相对于 IMU 的外参。
+            # true：以 extrinsic_T/R 为初值，运行中继续估计；初始值仍应尽量准确。
+            # false：完全固定使用下面给出的外参标定值。
+            extrinsic_est_en: true
+
+            # 雷达坐标系原点在 IMU/body 坐标系中的平移 [x, y, z]，单位：米。
+            # 这是“雷达在 IMU 中的位姿”，不是 IMU 在雷达中的位姿。
+            extrinsic_T: [-0.011, -0.02329, 0.04412]
+
+            # 雷达坐标系到 IMU/body 坐标系的 3×3 旋转矩阵，按行展开。
+            # 当前为单位阵，表示两坐标系轴方向一致。必须保持正交且行列式为 +1。
+            extrinsic_R: [1., 0., 0.,
+                          0., 1., 0.,
+                          0., 0., 1.]
+
+        # ------------------------------------------------------------------
+        # ROS 话题发布开关
+        # ------------------------------------------------------------------
+        publish:
+            # 发布 FAST-LIO 轨迹到 /path，坐标系为 camera_init。
+            path_en: true
+
+            # 发布当前参与点面匹配的有效特征点到 /cloud_effected。
+            # false 时话题可能仍能在 topic list 中看到，但不会持续发布消息。
+            effect_map_en: false
+
+            # 发布累计的全局点云地图到 /Laser_map，坐标系为 camera_init。
+            # 当前实现由 1 Hz 定时器发布，并把每次点云追加到缓存；长时间运行会持续占用内存。
+            map_en: false
+
+            # 点云总开关。
+            # true 时发布 /cloud_registered；配合 scan_bodyframe_pub_en 还会发布 body 点云。
+            # false 时关闭上述实时点云输出，但里程计/TF 等状态估计仍可继续运行。
+            scan_publish_en: true
+
+            # /cloud_registered 的点云密度开关：
+            # true  = 发布去畸变后的较密点云，细节更多、带宽和 CPU/内存开销更高；
+            # false = 发布经过 filter_size_surf 降采样的点云。
+            # /cloud_registered_body 使用同一开关，避免二维扫描链路处理稠密积压。
+            dense_publish_en: true
+
+            # 是否发布 IMU/body 坐标系下的点云到 /cloud_registered_body。
+            # 当前二维建图会把该话题转换成 /scan，因此必须保持 true。
+            scan_bodyframe_pub_en: true
+            # Exact scan-end LiDAR origin for radius filtering and ray evidence.
+            manual_lidar_origin_en: true
+
+        # ------------------------------------------------------------------
+        # PCD 地图保存
+        # ------------------------------------------------------------------
+        pcd_save:
+            # 是否允许通过 /map_save（std_srvs/srv/Trigger）服务保存地图。
+            # 需同时开启 publish.map_en，当前实现才会向待保存的全局地图缓存累积点云。
+            # 调用示例：ros2 service call /map_save std_srvs/srv/Trigger "{}"
+            pcd_save_en: false
+
+            # 上游设计：每累计多少帧另存一个 PCD；-1 表示所有帧保存到同一个文件。
+            # 重要：本仓库当前 laserMapping.cpp 中按 interval 分段保存的代码已被注释，
+            # 因此该参数目前基本不生效；实际 /map_save 会写入 map_file_path。
+            interval: -1

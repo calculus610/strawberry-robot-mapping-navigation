@@ -6,6 +6,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -85,5 +86,9 @@ install(DIRECTORY
 ament_environment_hooks(
   env-hooks/zzj_nav2_isolation.sh
 )
+
+ament_python_install_package(manual_cloud)
+install(PROGRAMS scripts/manual_cloud_filter.py
+  DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
