@@ -4,10 +4,6 @@ ROS 2 Humble workspace for the Wheeltec MID360 robot driver and bringup source.
 
 Version-controlled content is kept in `src/` plus workspace-level documentation and helper files.
 
-`src/FAST_LIO_ROS2` and `src/livox_ros_driver2` are vendored in this repository
-instead of being Git submodules. This keeps the robot-specific MID360
-integration changes available from a single clone.
-
 Generated build outputs are intentionally ignored:
 
 - `build/`
@@ -48,6 +44,27 @@ Start autonomous exploration from that shell with:
 ros2 launch my_robot_bringup_fastlio autonomous_exploration.launch.py
 ```
 
+Sourcing `~/zzj_ws/install/setup.bash` activates a package environment hook
+which removes only duplicate Nav2/DWB paths inherited from other workspaces.
+It keeps the navigation, Web, and Autoware teams' non-Nav2 packages available.
+The autonomous launch then validates that `nav2_bringup` and
+`nav2_mppi_controller` resolve to `/opt/ros/humble` before starting any robot
+process.
+
+Autonomous exploration uses the `ackermann_explore` executable by default.
+It waits until the Nav2 controller, planner, and BT navigator lifecycle nodes
+are all active before evaluating or sending a frontier goal. A temporarily
+rejected goal is retried without blacklisting the frontier, and automatic
+completion is disabled for the first 60 seconds after the start pose is
+recorded.
+Before the first motion test, run one selection cycle without sending a
+navigation goal:
+
+```bash
+ros2 launch my_robot_bringup_fastlio autonomous_exploration.launch.py \
+  explorer_dry_run:=true
+```
+
 The mapping launches reuse the shared `robot-base.service` by default and do
 not start a second chassis driver. The FAST-LIO mapping and Nav2 chain uses the
 private `fastlio_base_footprint` frame so the shared EKF can continue owning
@@ -66,17 +83,10 @@ This may ask for the robot account's sudo password. It uses `systemctl restart`
 so any stale chassis process is stopped as part of the service cgroup before a
 new driver is started; it does not kill unrelated ROS processes by name.
 
-For a manual robot-side terminal, first enter an isolated shell and then use
-the normal ROS setup files:
+For a manual robot-side terminal, source this workspace and launch normally:
 
 ```bash
 cd ~/zzj_ws
-env -i HOME="$HOME" USER="$USER" LOGNAME="$USER" SHELL=/bin/bash \
-  TERM="${TERM:-xterm-256color}" DISPLAY="${DISPLAY:-}" \
-  XAUTHORITY="${XAUTHORITY:-}" \
-  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
-  LANG=C.UTF-8 LC_ALL=C.UTF-8 bash --noprofile --norc
-source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 launch my_robot_bringup_fastlio autonomous_exploration.launch.py
 ```

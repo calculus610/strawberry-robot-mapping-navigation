@@ -1,8 +1,8 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
@@ -21,6 +21,21 @@ def generate_launch_description():
         default_value='true',
         description='Start RViz for manual mapping',
     )
+    use_octomap_arg = DeclareLaunchArgument(
+        'use_octomap',
+        default_value='true',
+        choices=['true', 'false'],
+        description='Use height-aware OctoMap projection for RViz and manual map saving',
+    )
+    selected_map_topic = PythonExpression([
+        "'/map_octomap' if '", LaunchConfiguration('use_octomap'),
+        "' == 'true' else '/map'",
+    ])
+    selected_rviz_file = PythonExpression([
+        "'manual_mapping_octomap.rviz' if '", LaunchConfiguration('use_octomap'),
+        "' == 'true' else 'fastlio_2d_slam.rviz'",
+    ])
+
     start_base_arg = DeclareLaunchArgument(
         'start_base',
         default_value='false',
@@ -32,7 +47,7 @@ def generate_launch_description():
     enable_map_autosave_arg = DeclareLaunchArgument(
         'enable_map_autosave',
         default_value='true',
-        description='Periodically save /map and perform a final save on Ctrl-C',
+        description='Periodically save the selected 2D map and perform a final save on Ctrl-C',
     )
     map_output_dir_arg = DeclareLaunchArgument(
         'map_output_dir',
@@ -123,6 +138,9 @@ def generate_launch_description():
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'start_rviz': LaunchConfiguration('start_rviz'),
+            'rviz_config': PathJoinSubstitution([
+                bringup_share, 'rviz', selected_rviz_file,
+            ]),
             'body_to_base_x': LaunchConfiguration('body_to_base_x'),
             'body_to_base_y': LaunchConfiguration('body_to_base_y'),
             'body_to_base_z': LaunchConfiguration('body_to_base_z'),
@@ -130,6 +148,26 @@ def generate_launch_description():
             'body_to_base_pitch': LaunchConfiguration('body_to_base_pitch'),
             'body_to_base_yaw': LaunchConfiguration('body_to_base_yaw'),
         }.items(),
+    )
+
+    # Keep the existing scan/SLAM map for comparison and its map TF.
+    # The namespaced server consumes current frames, not the growing /Laser_map.
+    octomap_node = Node(
+        package='octomap_server',
+        executable='octomap_server_node',
+        name='octomap_server',
+        namespace='manual_octomap',
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('use_octomap')),
+        parameters=[
+            PathJoinSubstitution([bringup_share, 'config', 'octomap_manual.yaml']),
+            {'use_sim_time': ParameterValue(
+                LaunchConfiguration('use_sim_time'), value_type=bool)},
+        ],
+        remappings=[
+            ('cloud_in', '/cloud_registered_body'),
+            ('projected_map', '/map_octomap'),
+        ],
     )
 
     map_autosaver = Node(
@@ -140,7 +178,7 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration('enable_map_autosave')),
         parameters=[{
             'use_sim_time': LaunchConfiguration('use_sim_time'),
-            'map_topic': '/map',
+            'map_topic': ParameterValue(selected_map_topic, value_type=str),
             'output_directory': ParameterValue(
                 LaunchConfiguration('map_output_dir'),
                 value_type=str,
@@ -149,6 +187,10 @@ def generate_launch_description():
                 LaunchConfiguration('map_name'),
                 value_type=str,
             ),
+            'map_name_prefix': ParameterValue(PythonExpression([
+                "'manual_octomap' if '", LaunchConfiguration('use_octomap'),
+                "' == 'true' else 'manual'",
+            ]), value_type=str),
             'periodic_save_interval': ParameterValue(
                 LaunchConfiguration('map_autosave_interval'),
                 value_type=float,
@@ -162,6 +204,7 @@ def generate_launch_description():
         use_sim_time_arg,
         start_rviz_arg,
         start_base_arg,
+        use_octomap_arg,
         enable_map_autosave_arg,
         map_output_dir_arg,
         map_name_arg,
@@ -176,5 +219,6 @@ def generate_launch_description():
         body_to_base_yaw_arg,
         base_launch,
         mapping_launch,
+        TimerAction(period=9.0, actions=[octomap_node]),
         map_autosaver,
     ])

@@ -110,6 +110,9 @@ Frontier FrontierSearch::buildNewFrontier(unsigned int initial_cell,
   unsigned int ix, iy;
   costmap_->indexToCells(initial_cell, ix, iy);
   costmap_->mapToWorld(ix, iy, output.initial.x, output.initial.y);
+  output.centroid = output.initial;
+  output.middle = output.initial;
+  output.points.push_back(output.initial);
 
   // push initial gridcell onto queue
   std::queue<unsigned int> bfs;
@@ -120,6 +123,8 @@ Frontier FrontierSearch::buildNewFrontier(unsigned int initial_cell,
   double reference_x, reference_y;
   costmap_->indexToCells(reference, rx, ry);
   costmap_->mapToWorld(rx, ry, reference_x, reference_y);
+  output.min_distance =
+    std::hypot(reference_x - output.initial.x, reference_y - output.initial.y);
 
   while (!bfs.empty()) {
     unsigned int idx = bfs.front();

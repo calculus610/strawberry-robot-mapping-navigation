@@ -73,15 +73,22 @@ public:
     output_directory_ = expand_home(
       declare_parameter<std::string>("output_directory", "~/maps/manual_mapping"));
     map_name_ = declare_parameter<std::string>("map_name", "");
+    map_name_prefix_ = declare_parameter<std::string>("map_name_prefix", "manual");
     periodic_save_interval_ = declare_parameter<double>("periodic_save_interval", 60.0);
     free_threshold_ = declare_parameter<double>("free_threshold", 0.25);
     occupied_threshold_ = declare_parameter<double>("occupied_threshold", 0.65);
 
     if (map_name_.empty()) {
-      map_name_ = "manual_" + make_timestamp();
+      map_name_ = map_name_prefix_ + "_" + make_timestamp();
     }
-    if (map_name_.find('/') != std::string::npos || map_name_.find('\\') != std::string::npos) {
-      throw std::invalid_argument("map_name must be a file name, not a path");
+    if (map_name_.find('/') != std::string::npos ||
+      map_name_.find('\\') != std::string::npos ||
+      map_name_prefix_.empty() ||
+      map_name_prefix_.find('/') != std::string::npos ||
+      map_name_prefix_.find('\\') != std::string::npos)
+    {
+      throw std::invalid_argument(
+              "map_name and map_name_prefix must be file names, not paths");
     }
     if (free_threshold_ < 0.0 || occupied_threshold_ > 1.0 ||
       free_threshold_ >= occupied_threshold_)
@@ -247,6 +254,7 @@ private:
   std::string map_topic_;
   std::filesystem::path output_directory_;
   std::string map_name_;
+  std::string map_name_prefix_;
   double periodic_save_interval_;
   double free_threshold_;
   double occupied_threshold_;

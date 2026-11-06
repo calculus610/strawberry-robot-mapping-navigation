@@ -25,6 +25,8 @@
 #ifndef LIVOX_ROS_DRIVER2_LDDC_H_
 #define LIVOX_ROS_DRIVER2_LDDC_H_
 
+#include <chrono>
+
 #include "include/livox_ros_driver2.h"
 
 #include "driver_node.h"
@@ -126,6 +128,10 @@ class Lddc final {
 
 #ifdef BUILDING_ROS2
   PublisherPtr CreatePublisher(uint8_t msg_type, std::string &topic_name, uint32_t queue_size);
+  void UpdateImuPublishBoundaryDiag(
+      uint64_t header_stamp_ns,
+      const std::chrono::steady_clock::time_point& publish_start,
+      const std::chrono::steady_clock::time_point& publish_end);
 #endif
 
   PublisherPtr GetCurrentPublisher(uint8_t index);
@@ -153,6 +159,17 @@ class Lddc final {
   PublisherPtr global_pub_;
   PublisherPtr private_imu_pub_[kMaxSourceLidar];
   PublisherPtr global_imu_pub_;
+
+  bool imu_publish_diag_enabled_ = false;
+  bool imu_publish_diag_announced_ = false;
+  bool imu_publish_diag_window_initialized_ = false;
+  bool imu_publish_diag_last_publish_valid_ = false;
+  uint64_t imu_publish_diag_window_count_ = 0;
+  uint64_t imu_publish_diag_total_count_ = 0;
+  uint64_t imu_publish_diag_max_gap_ns_ = 0;
+  uint64_t imu_publish_diag_max_call_ns_ = 0;
+  std::chrono::steady_clock::time_point imu_publish_diag_window_start_;
+  std::chrono::steady_clock::time_point imu_publish_diag_last_publish_;
 #endif
 
   livox_ros::DriverNode *cur_node_;

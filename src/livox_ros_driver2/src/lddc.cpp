@@ -27,6 +27,8 @@
 #include "comm/comm.h"
 
 #include <inttypes.h>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <iomanip>
 #include <math.h>
@@ -71,6 +73,9 @@ Lddc::Lddc(int format, int multi_topic, int data_src, int output_type,
       frame_id_(frame_id) {
   publish_period_ns_ = kNsPerSecond / publish_frq_;
   lds_ = nullptr;
+  const char* imu_publish_diag_env = std::getenv("LIVOX_IMU_TIMECHAIN_DIAG");
+  imu_publish_diag_enabled_ =
+      imu_publish_diag_env != nullptr && std::strcmp(imu_publish_diag_env, "1") == 0;
 #if 0
   bag_ = nullptr;
 #endif
@@ -513,7 +518,19 @@ void Lddc::PublishImuData(LidarImuDataQueue& imu_data_queue, const uint8_t index
 #endif
 
   if (kOutputToRos == output_type_) {
+#ifdef BUILDING_ROS2
+    std::chrono::steady_clock::time_point diag_publish_start;
+    if (imu_publish_diag_enabled_) {
+      diag_publish_start = std::chrono::steady_clock::now();
+    }
+#endif
     publisher_ptr->publish(imu_msg);
+#ifdef BUILDING_ROS2
+    if (imu_publish_diag_enabled_) {
+      const auto diag_publish_end = std::chrono::steady_clock::now();
+      UpdateImuPublishBoundaryDiag(timestamp, diag_publish_start, diag_publish_end);
+    }
+#endif
   } else {
 #ifdef BUILDING_ROS1
     if (bag_ && enable_imu_bag_) {
@@ -522,6 +539,78 @@ void Lddc::PublishImuData(LidarImuDataQueue& imu_data_queue, const uint8_t index
 #endif
   }
 }
+
+#ifdef BUILDING_ROS2
+void Lddc::UpdateImuPublishBoundaryDiag(
+    uint64_t header_stamp_ns,
+    const std::chrono::steady_clock::time_point& publish_start,
+    const std::chrono::steady_clock::time_point& publish_end) {
+  if (!imu_publish_diag_enabled_) {
+    return;
+  }
+
+  if (!imu_publish_diag_announced_ && cur_node_ != nullptr) {
+    DRIVER_INFO(*cur_node_,
+        "Livox IMU publish-boundary diagnostic enabled by LIVOX_IMU_TIMECHAIN_DIAG=1");
+    imu_publish_diag_announced_ = true;
+  }
+
+  if (!imu_publish_diag_window_initialized_) {
+    imu_publish_diag_window_start_ = publish_start;
+    imu_publish_diag_window_initialized_ = true;
+  }
+
+  if (imu_publish_diag_last_publish_valid_) {
+    const auto gap_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        publish_start - imu_publish_diag_last_publish_).count();
+    if (gap_ns > 0 && static_cast<uint64_t>(gap_ns) > imu_publish_diag_max_gap_ns_) {
+      imu_publish_diag_max_gap_ns_ = static_cast<uint64_t>(gap_ns);
+    }
+  }
+  imu_publish_diag_last_publish_ = publish_start;
+  imu_publish_diag_last_publish_valid_ = true;
+
+  const auto call_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+      publish_end - publish_start).count();
+  if (call_ns > 0 && static_cast<uint64_t>(call_ns) > imu_publish_diag_max_call_ns_) {
+    imu_publish_diag_max_call_ns_ = static_cast<uint64_t>(call_ns);
+  }
+
+  ++imu_publish_diag_window_count_;
+  ++imu_publish_diag_total_count_;
+
+  const auto window_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+      publish_end - imu_publish_diag_window_start_).count();
+  if (window_ns < static_cast<int64_t>(kNsPerSecond) || cur_node_ == nullptr) {
+    return;
+  }
+
+  const int64_t ros_now_ns = cur_node_->now().nanoseconds();
+  const int64_t age_at_publish_ns =
+      ros_now_ns - static_cast<int64_t>(header_stamp_ns) - call_ns;
+  const double window_seconds = static_cast<double>(window_ns) / 1.0e9;
+  const double publish_hz =
+      static_cast<double>(imu_publish_diag_window_count_) / window_seconds;
+
+  DRIVER_INFO(*cur_node_,
+      "[LIVOX_IMU_PUBLISH_BOUNDARY] pub_hz=%.2f window_count=%" PRIu64
+      " total=%" PRIu64 " gap_max_ms=%.3f call_max_us=%.3f"
+      " header_ns=%" PRIu64 " ros_now_ns=%" PRId64 " header_age_est_ms=%.3f",
+      publish_hz,
+      imu_publish_diag_window_count_,
+      imu_publish_diag_total_count_,
+      static_cast<double>(imu_publish_diag_max_gap_ns_) / 1.0e6,
+      static_cast<double>(imu_publish_diag_max_call_ns_) / 1.0e3,
+      header_stamp_ns,
+      ros_now_ns,
+      static_cast<double>(age_at_publish_ns) / 1.0e6);
+
+  imu_publish_diag_window_start_ = publish_end;
+  imu_publish_diag_window_count_ = 0;
+  imu_publish_diag_max_gap_ns_ = 0;
+  imu_publish_diag_max_call_ns_ = 0;
+}
+#endif
 
 #ifdef BUILDING_ROS2
 std::shared_ptr<rclcpp::PublisherBase> Lddc::CreatePublisher(uint8_t msg_type,

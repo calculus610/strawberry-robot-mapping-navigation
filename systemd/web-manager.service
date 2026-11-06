@@ -1,0 +1,25 @@
+[Unit]
+Description=WHEELTEC Web Mode Manager
+Requires=robot-base.service
+After=robot-base.service
+PartOf=robot-base.service
+
+[Service]
+Type=simple
+User=wheeltec
+Group=wheeltec
+WorkingDirectory=/home/wheeltec/web_manager_ws
+ExecStart=/home/wheeltec/web_manager_ws/start_web_manager.sh
+
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGINT
+KillMode=control-group
+SuccessExitStatus=130 143
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

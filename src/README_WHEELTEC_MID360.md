@@ -8,7 +8,8 @@ chassis driver, and removes the old Scout chassis source packages.
 
 - `FAST_LIO_ROS2`: FAST-LIO mapping from MID360 point cloud and IMU.
 - `livox_ros_driver2`: Livox MID360 ROS2 driver.
-- `m-explore-ros2/explore`: explore_lite frontier exploration node.
+- `m-explore-ros2/explore`: legacy explore_lite plus the
+  `ackermann_explore` decision node used by autonomous mapping.
 - `m-explore-ros2/explore_lite_msgs`: messages used by explore_lite.
 - `my_robot_bringup_fastlio`: integration launch/config package.
 - `turn_on_wheeltec_robot`: Wheeltec chassis driver used instead of Scout.
@@ -67,7 +68,7 @@ workspace merely to obtain `serialConfig.cmake`.
 
 ### 自主探索建图
 
-让 Nav2 和 explore_lite 自动控制小车探索并建图：
+让 Nav2 和阿克曼前沿探索器自动控制小车探索并建图：
 
 ```bash
 cd ~/zzj_ws
@@ -77,14 +78,49 @@ ros2 launch my_robot_bringup_fastlio autonomous_exploration.launch.py
 ```
 
 该命令复用系统中已运行的公共底盘服务，并启动 MID360、FAST-LIO、二维栅格
-建图、Nav2、explore_lite。不要同时启动第二套底盘节点；只有在公共底盘服务已被
-明确停止时才可增加 `start_base:=true`。为避免嵌入式主机上的 RViz 段错误和
-资源抢占，RViz 默认不启动；
-需要可视化时可在命令末尾增加 `start_rviz:=true`。启动后不要再运行下面的手动建图命令。
+建图、Nav2、`ackermann_explore`。不要同时启动第二套底盘节点；只有在公共底盘服务已被
+明确停止时才可增加 `start_base:=true`。自主建图当前默认启动 RViz；如果嵌入式
+主机出现资源不足或 RViz 不稳定，可在命令末尾增加 `start_rviz:=false`。
+启动后不要再运行下面的手动建图命令。
 
 `nav2_bringup` 和 `nav2_mppi_controller` 使用 `/opt/ros/humble` 中通过
 APT 安装的官方 Nav2 1.1.20。该控制器使用 Ackermann 运动模型，匹配
-`senior_akm` 底盘；不要改回不约束最小转弯半径的 DWB。
+`senior_akm` 底盘；不要改回不约束最小转弯半径的 DWB。自主建图 launch
+会在启动任何机器人进程前校验这两个包的来源；如果当前终端继承了
+`wheeltec_ros2` 的 Nav2 overlay，将直接报错而不是带着错误环境运行。
+
+`ackermann_explore` 不会把未知栅格的质心直接交给 Nav2。它先在已知自由区
+生成面向 frontier 的观察位姿，再调用 Smac Hybrid-A* 验证候选路径，并按
+路径长度、倒车距离、换向次数、初始转向、净空和信息增益评分。导航期间保持
+当前目标，只有成功、失败或超时后才重新选择，避免旧 `explore_lite` 的周期性
+目标抢占。节点会等待 `controller_server`、`planner_server` 和
+`bt_navigator` 都进入 `active` 才开始选择；启动竞态造成的临时目标拒绝不会
+拉黑 frontier，也不会进入探索完成计数。
+
+连续 3 轮既找不到有效观察位姿、也找不到 Smac 可达路径时，探索器发布完成
+状态并返回本次启动后首次记录的机器人位姿。首次记录起点后的 60 秒为启动
+保护期，这期间不会自动完成。返航成功、失败或超过 120 秒后，
+都会停止继续派发导航目标并请求保存最终二维地图。自主建图同时每 60 秒原子
+更新一次地图备份：
+
+```text
+~/maps/autonomous_mapping/autonomous_YYYYMMDD_HHMMSS.pgm
+~/maps/autonomous_mapping/autonomous_YYYYMMDD_HHMMSS.yaml
+```
+
+突然断电时最多丢失最近 60 秒；正常 `Ctrl-C` 还会执行一次退出保存。可以通过
+`return_to_start:=false` 禁用返航，通过 `map_autosave_interval:=0` 只保留完成
+和退出保存，通过 `enable_map_autosave:=false` 完全关闭保存。
+
+第一次部署后可先执行不移动的选择测试：
+
+```bash
+ros2 launch my_robot_bringup_fastlio autonomous_exploration.launch.py \
+  explorer_dry_run:=true
+```
+
+该模式会完成一次 frontier 检测、Hybrid-A* 路径评估和 RViz 标记，但不会把
+目标发送给 `NavigateToPose`。
 
 底盘使用稳定设备名 `/dev/wheeltec_controller`（当前实际指向
 `/dev/ttyCH343USB1`），不要改成 Jetson 板载串口 `/dev/ttyTHS1`。
@@ -93,9 +129,15 @@ APT 安装的官方 Nav2 1.1.20。该控制器使用 Ackermann 运动模型，�
 底盘节点每 2 秒打印一次实际下发的 `linear.x` 和 `angular.z`，可用于
 区分导航配置问题与下位机协议问题。
 
+公共底盘驱动带有独立的 `/cmd_vel` 看门狗：收到过速度命令后，如果连续
+0.5 秒没有新命令，会直接向下位机发送一次零速度。自主建图 launch 还会启动
+`cmd_vel_shutdown_guard`，在收到 `Ctrl-C`（SIGINT）或 SIGTERM 时连续发布
+10 次零速度。前者用于处理导航进程崩溃、网络断开等异常退出，后者用于正常
+结束时立即停车；两层保护都不要求自主建图进程拥有或关闭公共底盘服务。
+
 ### 键盘遥控建图
 
-只启动建图链路，不启动 Nav2 和 explore_lite：
+只启动建图链路，不启动 Nav2 和自主探索器：
 
 ```bash
 cd ~/zzj_ws
@@ -191,7 +233,7 @@ pointcloud_to_laserscan
 scan_qos_relay
 slam_toolbox
 Nav2
-explore_lite
+ackermann_explore
 ```
 
 手动建图模式复用公共底盘服务，只启动 MID360、FAST-LIO、点云转激光、

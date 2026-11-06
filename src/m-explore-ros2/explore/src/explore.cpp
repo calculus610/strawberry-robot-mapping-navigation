@@ -38,6 +38,7 @@
 
 #include <explore/explore.h>
 
+#include <exception>
 #include <thread>
 
 inline static bool same_point(const geometry_msgs::msg::Point& one,
@@ -141,7 +142,9 @@ Explore::Explore()
 
 Explore::~Explore()
 {
-  stop();
+  if (rclcpp::ok(get_node_base_interface()->get_context())) {
+    stop();
+  }
 }
 
 void Explore::resumeCallback(const std_msgs::msg::Bool::SharedPtr msg)
@@ -441,14 +444,21 @@ void Explore::resume()
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
-  // ROS1 code
-  /*
-  if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,
-                                     ros::console::levels::Debug)) {
-    ros::console::notifyLoggerLevelsChanged();
-  } */
-  rclcpp::spin(
-      std::make_shared<explore::Explore>());  // std::move(std::make_unique)?
-  rclcpp::shutdown();
-  return 0;
+  int exit_code = 0;
+  try {
+    auto node = std::make_shared<explore::Explore>();
+    rclcpp::spin(node);
+    node.reset();
+  } catch (const std::exception& error) {
+    if (rclcpp::ok()) {
+      RCLCPP_ERROR(
+          rclcpp::get_logger("explore_node"),
+          "Explorer startup failed: %s", error.what());
+      exit_code = 1;
+    }
+  }
+  if (rclcpp::ok()) {
+    rclcpp::shutdown();
+  }
+  return exit_code;
 }

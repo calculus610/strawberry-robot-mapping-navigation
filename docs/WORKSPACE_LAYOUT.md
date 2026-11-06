@@ -31,7 +31,7 @@ maps/                  机器人运行数据，不由 Mac 覆盖
 3. 怀疑安装树漂移时运行 `./scripts/robot.sh audit-install`。
 4. 同步前运行 `./scripts/robot.sh sync-dry`，确认后才运行 `sync`。
 5. `build/install/log` 只存在于机器人；Mac 上即使存在，也是不可移植的 Linux 生成物。
-6. FAST-LIO 与 Livox Driver 已作为普通源码目录整合进主仓库；其中的项目定制不能通过删除或重置来“清理”。
+6. FAST-LIO 与 Livox Driver 是 Git 子模块；其中的项目定制不能通过删除或重置来“清理”。
 7. Nav2 运行时由 `/opt/ros/humble` 中的官方 APT 包提供；不要把系统包复制到工作区。
 8. 不修改共享账号的 `.bashrc`；构建与运行使用隔离 shell，再依次加载
    `/opt/ros/humble/setup.bash` 和 `install/setup.bash`。
@@ -55,18 +55,17 @@ maps/                  机器人运行数据，不由 Mac 覆盖
 - 机器人 `src` 中存在大量 macOS AppleDouble `._*` 文件；这些是元数据垃圾，不是源码。
 - 根目录中的 apt 包名空文件是命令残留，不是依赖声明。系统依赖应记录在 README、
   `package.xml` 或安装脚本中。
-- `src/FAST_LIO_ROS2` 和 `src/livox_ros_driver2` 包含真实项目修改，已随主仓库统一
-  版本管理，不能直接恢复到上游版本。
+- `src/FAST_LIO_ROS2` 和 `src/livox_ros_driver2` 包含真实项目修改，必须保留并在后续
+  形成明确的子模块提交或补丁，不能直接恢复到上游版本。
 
-## Git 整理记录
+## 尚需完成的 Git 整理
 
-2026-07-26 已将原来的两个 Git 子模块转换为主仓库内的普通源码目录，确保克隆
-主仓库即可获得机器人实际使用的全部定制源码。整理顺序为：
+当前主仓库以及两个子模块都有尚未提交的项目修改。合理顺序是：
 
 1. 清除 AppleDouble、Python 缓存和生成目录。
 2. 在机器人上完成全工作空间构建验证。
-3. 将 FAST-LIO、ikd-Tree 和 Livox Driver 源码连同项目定制纳入主仓库。
-4. 提交其余 Wheeltec 集成修改。
-5. 添加项目 GitHub 远程仓库。
+3. 分别提交 FAST-LIO 和 Livox Driver 的项目定制。
+4. 更新主仓库的子模块指针，并提交其余 Wheeltec 集成修改。
+5. 根据需要再添加 GitHub、Gitee 或私有 Git 远程仓库。
 
 在构建验证之前，不为追求 `git status` 空白而丢弃现有修改。

@@ -28,6 +28,16 @@ def generate_launch_description():
         description='FAST-LIO config file name',
     )
 
+    scan_params_file_arg = DeclareLaunchArgument(
+        'scan_params_file',
+        default_value=PathJoinSubstitution([
+            bringup_share,
+            'config',
+            'pointcloud_to_laserscan_fastlio.yaml',
+        ]),
+        description='pointcloud_to_laserscan parameter file',
+    )
+
     start_rviz_arg = DeclareLaunchArgument(
         'start_rviz',
         default_value='true',
@@ -129,13 +139,7 @@ def generate_launch_description():
             ('cloud_in', '/cloud_registered_body'),
             ('scan', '/scan_raw'),
         ],
-        parameters=[
-            PathJoinSubstitution([
-                bringup_share,
-                'config',
-                'pointcloud_to_laserscan_fastlio.yaml',
-            ])
-        ],
+        parameters=[LaunchConfiguration('scan_params_file')],
     )
 
     scan_relay_node = Node(
@@ -186,6 +190,7 @@ def generate_launch_description():
         use_sim_time_arg,
         config_path_arg,
         config_file_arg,
+        scan_params_file_arg,
         start_rviz_arg,
         rviz_config_arg,
         body_to_base_x_arg,

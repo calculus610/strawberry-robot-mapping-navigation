@@ -23,7 +23,7 @@
 
         # 当前扫描帧用于匹配前的体素滤波叶子尺寸，单位：米。
         # 0.5 表示使用约 0.5 m 体素降采样；越小点越密、计算越慢。
-        filter_size_surf: 0.5
+        filter_size_surf: 0.2
 
         # 增量地图写入 ikd-Tree 时的体素尺寸，单位：米。
         # 越小地图细节越丰富，同时占用更多内存并增加近邻搜索开销。
@@ -40,7 +40,7 @@
 
         # 调用 /map_save 服务时写入的 PCD 文件路径。
         # 相对路径相对于节点进程的工作目录；需要固定位置时建议改成绝对路径。
-        map_file_path: "./test.pcd"
+        map_file_path: "/home/wheeltec/maps/manual_mapping/fastlio_3d_20261011_153859.pcd"
 
         # ------------------------------------------------------------------
         # 雷达、IMU 话题及时间同步
@@ -156,7 +156,7 @@
             # /cloud_registered 的点云密度开关：
             # true  = 发布去畸变后的较密点云，细节更多、带宽和 CPU/内存开销更高；
             # false = 发布经过 filter_size_surf 降采样的点云。
-            # 注意：当前 /cloud_registered_body 的实现仍发布较密的去畸变点云。
+            # /cloud_registered_body 使用同一开关，避免二维扫描链路处理稠密积压。
             dense_publish_en: false
 
             # 是否发布 IMU/body 坐标系下的点云到 /cloud_registered_body。

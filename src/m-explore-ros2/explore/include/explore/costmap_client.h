@@ -38,6 +38,9 @@
 #ifndef COSTMAP_CLIENT_
 #define COSTMAP_CLIENT_
 
+#include <atomic>
+#include <cstdint>
+
 #include <tf2_ros/buffer.hpp>
 #include <tf2_ros/transform_listener.hpp>
 
@@ -110,6 +113,27 @@ public:
     return robot_base_frame_;
   }
 
+  /**
+   * @brief Monotonic revision incremented only when occupancy-grid content
+   * changes, rather than on every repeated /map publication.
+   */
+  std::uint64_t getMapRevision() const
+  {
+    return map_revision_.load();
+  }
+
+  rclcpp::Time getLastMapMessageTime() const
+  {
+    return rclcpp::Time(
+      last_map_message_ns_.load(), node_.get_clock()->get_clock_type());
+  }
+
+  rclcpp::Time getLastMapChangeTime() const
+  {
+    return rclcpp::Time(
+      last_map_change_ns_.load(), node_.get_clock()->get_clock_type());
+  }
+
 protected:
   void updateFullMap(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
   void updatePartialMap(const map_msgs::msg::OccupancyGridUpdate::SharedPtr msg);
@@ -124,6 +148,10 @@ protected:
   std::string global_frame_;      ///< @brief The global frame for the costmap
   std::string robot_base_frame_;  ///< @brief The frame_id of the robot base
   double transform_tolerance_;    ///< timeout before transform errors
+  std::atomic<std::uint64_t> map_revision_{0};
+  std::atomic<std::uint64_t> last_full_map_signature_{0};
+  std::atomic<std::int64_t> last_map_message_ns_{0};
+  std::atomic<std::int64_t> last_map_change_ns_{0};
 
 private:
   // will be unsubscribed at destruction

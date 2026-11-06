@@ -33,12 +33,16 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
+#include <algorithm>
 #include <mutex>
 #include <math.h>
 #include <thread>
 #include <fstream>
 #include <csignal>
 #include <chrono>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 #include <Python.h>
 #include <so3_math.h>
@@ -107,6 +111,209 @@ vector<double>       extrinR(9, 0.0);
 deque<double>                     time_buffer;
 deque<PointCloudXYZI::Ptr>        lidar_buffer;
 deque<sensor_msgs::msg::Imu::ConstSharedPtr> imu_buffer;
+
+namespace
+{
+using TimechainSteadyClock = std::chrono::steady_clock;
+
+struct TimechainDiagState
+{
+    bool enabled = false;
+    TimechainSteadyClock::time_point window_start;
+    TimechainSteadyClock::time_point last_lidar_callback;
+    TimechainSteadyClock::time_point last_imu_callback;
+    TimechainSteadyClock::time_point sync_wait_start;
+    bool have_lidar_callback = false;
+    bool have_imu_callback = false;
+    bool have_lidar_header = false;
+    bool have_imu_header = false;
+    bool have_point_count = false;
+    bool have_lidar_header_delta = false;
+    bool have_imu_header_delta = false;
+    bool sync_wait_active = false;
+    uint64_t lidar_callbacks = 0;
+    uint64_t imu_callbacks = 0;
+    uint64_t lidar_rollbacks = 0;
+    uint64_t imu_rollbacks = 0;
+    uint64_t sync_empty_returns = 0;
+    uint64_t sync_wait_returns = 0;
+    uint64_t synced_scans = 0;
+    double latest_lidar_header = 0.0;
+    double latest_imu_header = 0.0;
+    double lidar_callback_gap_max = 0.0;
+    double imu_callback_gap_max = 0.0;
+    double lidar_header_delta_min = 0.0;
+    double lidar_header_delta_max = 0.0;
+    double imu_header_delta_min = 0.0;
+    double imu_header_delta_max = 0.0;
+    double header_difference_max = 0.0;
+    double sync_wait_max = 0.0;
+    uint64_t point_count_min = 0;
+    uint64_t point_count_max = 0;
+    size_t lidar_buffer_max = 0;
+    size_t imu_buffer_max = 0;
+    size_t time_buffer_max = 0;
+    double last_lidar_begin = 0.0;
+    double last_lidar_end = 0.0;
+    size_t last_selected_imu_count = 0;
+    double last_selected_imu_first = 0.0;
+    double last_selected_imu_last = 0.0;
+
+    void ResetWindow(const TimechainSteadyClock::time_point &now)
+    {
+        window_start = now;
+        lidar_callbacks = 0;
+        imu_callbacks = 0;
+        lidar_rollbacks = 0;
+        imu_rollbacks = 0;
+        sync_empty_returns = 0;
+        sync_wait_returns = 0;
+        synced_scans = 0;
+        lidar_callback_gap_max = 0.0;
+        imu_callback_gap_max = 0.0;
+        have_lidar_header_delta = false;
+        have_imu_header_delta = false;
+        lidar_header_delta_min = 0.0;
+        lidar_header_delta_max = 0.0;
+        imu_header_delta_min = 0.0;
+        imu_header_delta_max = 0.0;
+        header_difference_max = 0.0;
+        sync_wait_max = 0.0;
+        have_point_count = false;
+        point_count_min = 0;
+        point_count_max = 0;
+        lidar_buffer_max = 0;
+        imu_buffer_max = 0;
+        time_buffer_max = 0;
+    }
+};
+
+TimechainDiagState timechain_diag;
+
+bool TimechainDiagEnabledFromEnvironment()
+{
+    const char *value = std::getenv("FAST_LIO_TIMECHAIN_DIAG");
+    if (value == nullptr || value[0] == '\0')
+    {
+        return false;
+    }
+    return std::strcmp(value, "1") == 0 ||
+           std::strcmp(value, "true") == 0 ||
+           std::strcmp(value, "TRUE") == 0 ||
+           std::strcmp(value, "on") == 0 ||
+           std::strcmp(value, "ON") == 0 ||
+           std::strcmp(value, "yes") == 0 ||
+           std::strcmp(value, "YES") == 0;
+}
+
+void TimechainDiagRecordLidar(const double header, const uint64_t point_count)
+{
+    if (!timechain_diag.enabled)
+    {
+        return;
+    }
+
+    const auto now = TimechainSteadyClock::now();
+    if (timechain_diag.have_lidar_callback)
+    {
+        timechain_diag.lidar_callback_gap_max = std::max(
+            timechain_diag.lidar_callback_gap_max,
+            std::chrono::duration<double>(now - timechain_diag.last_lidar_callback).count());
+    }
+    if (timechain_diag.have_lidar_header)
+    {
+        const double delta = header - timechain_diag.latest_lidar_header;
+        if (!timechain_diag.have_lidar_header_delta)
+        {
+            timechain_diag.lidar_header_delta_min = delta;
+            timechain_diag.lidar_header_delta_max = delta;
+            timechain_diag.have_lidar_header_delta = true;
+        }
+        else
+        {
+            timechain_diag.lidar_header_delta_min = std::min(timechain_diag.lidar_header_delta_min, delta);
+            timechain_diag.lidar_header_delta_max = std::max(timechain_diag.lidar_header_delta_max, delta);
+        }
+    }
+
+    timechain_diag.last_lidar_callback = now;
+    timechain_diag.have_lidar_callback = true;
+    timechain_diag.latest_lidar_header = header;
+    timechain_diag.have_lidar_header = true;
+    timechain_diag.lidar_callbacks++;
+    if (!timechain_diag.have_point_count)
+    {
+        timechain_diag.point_count_min = point_count;
+        timechain_diag.point_count_max = point_count;
+        timechain_diag.have_point_count = true;
+    }
+    else
+    {
+        timechain_diag.point_count_min = std::min(timechain_diag.point_count_min, point_count);
+        timechain_diag.point_count_max = std::max(timechain_diag.point_count_max, point_count);
+    }
+    if (timechain_diag.have_imu_header)
+    {
+        timechain_diag.header_difference_max = std::max(
+            timechain_diag.header_difference_max,
+            std::abs(timechain_diag.latest_lidar_header - timechain_diag.latest_imu_header));
+    }
+}
+
+void TimechainDiagRecordImu(const double header)
+{
+    if (!timechain_diag.enabled)
+    {
+        return;
+    }
+
+    const auto now = TimechainSteadyClock::now();
+    if (timechain_diag.have_imu_callback)
+    {
+        timechain_diag.imu_callback_gap_max = std::max(
+            timechain_diag.imu_callback_gap_max,
+            std::chrono::duration<double>(now - timechain_diag.last_imu_callback).count());
+    }
+    if (timechain_diag.have_imu_header)
+    {
+        const double delta = header - timechain_diag.latest_imu_header;
+        if (!timechain_diag.have_imu_header_delta)
+        {
+            timechain_diag.imu_header_delta_min = delta;
+            timechain_diag.imu_header_delta_max = delta;
+            timechain_diag.have_imu_header_delta = true;
+        }
+        else
+        {
+            timechain_diag.imu_header_delta_min = std::min(timechain_diag.imu_header_delta_min, delta);
+            timechain_diag.imu_header_delta_max = std::max(timechain_diag.imu_header_delta_max, delta);
+        }
+    }
+
+    timechain_diag.last_imu_callback = now;
+    timechain_diag.have_imu_callback = true;
+    timechain_diag.latest_imu_header = header;
+    timechain_diag.have_imu_header = true;
+    timechain_diag.imu_callbacks++;
+    if (timechain_diag.have_lidar_header)
+    {
+        timechain_diag.header_difference_max = std::max(
+            timechain_diag.header_difference_max,
+            std::abs(timechain_diag.latest_lidar_header - timechain_diag.latest_imu_header));
+    }
+}
+
+void TimechainDiagRecordBufferSizes()
+{
+    if (!timechain_diag.enabled)
+    {
+        return;
+    }
+    timechain_diag.lidar_buffer_max = std::max(timechain_diag.lidar_buffer_max, lidar_buffer.size());
+    timechain_diag.imu_buffer_max = std::max(timechain_diag.imu_buffer_max, imu_buffer.size());
+    timechain_diag.time_buffer_max = std::max(timechain_diag.time_buffer_max, time_buffer.size());
+}
+}  // namespace
 
 PointCloudXYZI::Ptr featsFromMap(new PointCloudXYZI());
 PointCloudXYZI::Ptr feats_undistort(new PointCloudXYZI());
@@ -285,9 +492,14 @@ void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::UniquePtr msg)
     mtx_buffer.lock();
     scan_count ++;
     double cur_time = get_time_sec(msg->header.stamp);
+    TimechainDiagRecordLidar(cur_time, static_cast<uint64_t>(msg->width) * msg->height);
     double preprocess_start_time = omp_get_wtime();
     if (!is_first_lidar && cur_time < last_timestamp_lidar)
     {
+        if (timechain_diag.enabled)
+        {
+            timechain_diag.lidar_rollbacks++;
+        }
         std::cerr << "lidar loop back, clear buffer" << std::endl;
         lidar_buffer.clear();
     }
@@ -300,6 +512,7 @@ void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::UniquePtr msg)
     p_pre->process(msg, ptr);
     lidar_buffer.push_back(ptr);
     time_buffer.push_back(cur_time);
+    TimechainDiagRecordBufferSizes();
     last_timestamp_lidar = cur_time;
     s_plot11[scan_count] = omp_get_wtime() - preprocess_start_time;
     mtx_buffer.unlock();
@@ -312,10 +525,15 @@ void livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::UniquePtr msg)
 {
     mtx_buffer.lock();
     double cur_time = get_time_sec(msg->header.stamp);
+    TimechainDiagRecordLidar(cur_time, msg->point_num);
     double preprocess_start_time = omp_get_wtime();
     scan_count ++;
     if (!is_first_lidar && cur_time < last_timestamp_lidar)
     {
+        if (timechain_diag.enabled)
+        {
+            timechain_diag.lidar_rollbacks++;
+        }
         std::cerr << "lidar loop back, clear buffer" << std::endl;
         lidar_buffer.clear();
     }
@@ -348,6 +566,7 @@ void livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::UniquePtr msg)
     }
     lidar_buffer.push_back(ptr);
     time_buffer.push_back(last_timestamp_lidar);
+    TimechainDiagRecordBufferSizes();
 
     s_plot11[scan_count] = omp_get_wtime() - preprocess_start_time;
     mtx_buffer.unlock();
@@ -371,9 +590,14 @@ void imu_cbk(const sensor_msgs::msg::Imu::UniquePtr msg_in)
     double timestamp = get_time_sec(msg->header.stamp);
 
     mtx_buffer.lock();
+    TimechainDiagRecordImu(timestamp);
 
     if (timestamp < last_timestamp_imu)
     {
+        if (timechain_diag.enabled)
+        {
+            timechain_diag.imu_rollbacks++;
+        }
         std::cerr << "lidar loop back, clear buffer" << std::endl;
         imu_buffer.clear();
     }
@@ -381,6 +605,7 @@ void imu_cbk(const sensor_msgs::msg::Imu::UniquePtr msg_in)
     last_timestamp_imu = timestamp;
 
     imu_buffer.push_back(msg);
+    TimechainDiagRecordBufferSizes();
     mtx_buffer.unlock();
     sig_buffer.notify_all();
 }
@@ -390,6 +615,10 @@ int    scan_num = 0;
 bool sync_packages(MeasureGroup &meas)
 {
     if (lidar_buffer.empty() || imu_buffer.empty()) {
+        if (timechain_diag.enabled)
+        {
+            timechain_diag.sync_empty_returns++;
+        }
         return false;
     }
 
@@ -421,6 +650,19 @@ bool sync_packages(MeasureGroup &meas)
 
     if (last_timestamp_imu < lidar_end_time)
     {
+        if (timechain_diag.enabled)
+        {
+            const auto now = TimechainSteadyClock::now();
+            if (!timechain_diag.sync_wait_active)
+            {
+                timechain_diag.sync_wait_active = true;
+                timechain_diag.sync_wait_start = now;
+            }
+            timechain_diag.sync_wait_returns++;
+            timechain_diag.sync_wait_max = std::max(
+                timechain_diag.sync_wait_max,
+                std::chrono::duration<double>(now - timechain_diag.sync_wait_start).count());
+        }
         return false;
     }
 
@@ -433,6 +675,33 @@ bool sync_packages(MeasureGroup &meas)
         if(imu_time > lidar_end_time) break;
         meas.imu.push_back(imu_buffer.front());
         imu_buffer.pop_front();
+    }
+
+    if (timechain_diag.enabled)
+    {
+        const auto now = TimechainSteadyClock::now();
+        if (timechain_diag.sync_wait_active)
+        {
+            timechain_diag.sync_wait_max = std::max(
+                timechain_diag.sync_wait_max,
+                std::chrono::duration<double>(now - timechain_diag.sync_wait_start).count());
+            timechain_diag.sync_wait_active = false;
+        }
+        timechain_diag.synced_scans++;
+        timechain_diag.last_lidar_begin = meas.lidar_beg_time;
+        timechain_diag.last_lidar_end = meas.lidar_end_time;
+        timechain_diag.last_selected_imu_count = meas.imu.size();
+        if (!meas.imu.empty())
+        {
+            timechain_diag.last_selected_imu_first = get_time_sec(meas.imu.front()->header.stamp);
+            timechain_diag.last_selected_imu_last = get_time_sec(meas.imu.back()->header.stamp);
+        }
+        else
+        {
+            timechain_diag.last_selected_imu_first = 0.0;
+            timechain_diag.last_selected_imu_last = 0.0;
+        }
+        TimechainDiagRecordBufferSizes();
     }
 
     lidar_buffer.pop_front();
@@ -552,12 +821,17 @@ void publish_frame_world(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::Share
 
 void publish_frame_body(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_body)
 {
-    int size = feats_undistort->points.size();
+    // Match /cloud_registered semantics: dense_publish_en=false must also
+    // downsample the body-frame cloud.  The old implementation always sent
+    // feats_undistort here, so the pointcloud-to-laserscan pipeline received a
+    // much larger cloud than requested and gradually fell behind real time.
+    PointCloudXYZI::Ptr laserCloudBody(dense_pub_en ? feats_undistort : feats_down_body);
+    int size = laserCloudBody->points.size();
     PointCloudXYZI::Ptr laserCloudIMUBody(new PointCloudXYZI(size, 1));
 
     for (int i = 0; i < size; i++)
     {
-        RGBpointBodyLidarToIMU(&feats_undistort->points[i], \
+        RGBpointBodyLidarToIMU(&laserCloudBody->points[i], \
                             &laserCloudIMUBody->points[i]);
     }
 
@@ -670,6 +944,10 @@ void publish_path(rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubPath)
     set_posestamp(msg_body_pose);
     msg_body_pose.header.stamp = get_ros_time(lidar_end_time); // ros::Time().fromSec(lidar_end_time);
     msg_body_pose.header.frame_id = "camera_init";
+    // A Path has its own header in addition to the individual PoseStamped
+    // headers.  Keeping the constructor-time stamp made RViz repeatedly query
+    // a transform that had already aged out of the TF cache.
+    path.header.stamp = msg_body_pose.header.stamp;
 
     /*** if path is too large, the rvis will crash ***/
     static int jjj = 0;
@@ -805,6 +1083,15 @@ class LaserMappingNode : public rclcpp::Node
 public:
     LaserMappingNode(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) : Node("laser_mapping", options)
     {
+        timechain_diag.enabled = TimechainDiagEnabledFromEnvironment();
+        if (timechain_diag.enabled)
+        {
+            timechain_diag.ResetWindow(TimechainSteadyClock::now());
+            RCLCPP_INFO(
+                this->get_logger(),
+                "FAST-LIO timechain diagnostics enabled by FAST_LIO_TIMECHAIN_DIAG; emitting one scalar summary per second");
+        }
+
         this->declare_parameter<bool>("publish.path_en", true);
         this->declare_parameter<bool>("publish.effect_map_en", false);
         this->declare_parameter<bool>("publish.map_en", false);
@@ -927,17 +1214,28 @@ public:
         /*** ROS subscribe initialization ***/
         if (p_pre->lidar_type == AVIA)
         {
-            sub_pcl_livox_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(lid_topic, 20, livox_pcl_cbk);
+            // Localization must prefer the newest scan over replaying a
+            // growing reliable backlog.  FAST-LIO tolerates an occasional
+            // dropped scan and integrates the intervening IMU samples.
+            sub_pcl_livox_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(
+                lid_topic, rclcpp::SensorDataQoS().keep_last(2), livox_pcl_cbk);
         }
         else
         {
             sub_pcl_pc_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(lid_topic, rclcpp::SensorDataQoS(), standard_pcl_cbk);
         }
-        sub_imu_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_topic, 10, imu_cbk);
-        pubLaserCloudFull_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered", 20);
-        pubLaserCloudFull_body_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered_body", 20);
-        pubLaserCloudEffect_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_effected", 20);
-        pubLaserCloudMap_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/Laser_map", 20);
+        sub_imu_ = this->create_subscription<sensor_msgs::msg::Imu>(imu_topic, rclcpp::QoS(rclcpp::KeepLast(10)).best_effort(), imu_cbk);
+        // These high-bandwidth point clouds are live sensor products.  A slow
+        // visualizer or converter must not make old clouds queue behind the
+        // robot's current surroundings.
+        pubLaserCloudFull_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+            "/cloud_registered", rclcpp::SensorDataQoS().keep_last(1));
+        pubLaserCloudFull_body_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+            "/cloud_registered_body", rclcpp::SensorDataQoS().keep_last(1));
+        pubLaserCloudEffect_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+            "/cloud_effected", rclcpp::SensorDataQoS().keep_last(1));
+        pubLaserCloudMap_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+            "/Laser_map", rclcpp::SensorDataQoS().keep_last(1));
         pubOdomAftMapped_ = this->create_publisher<nav_msgs::msg::Odometry>("/Odometry", 20);
         pubPath_ = this->create_publisher<nav_msgs::msg::Path>("/path", 20);
         tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -962,8 +1260,111 @@ public:
     }
 
 private:
+    void MaybeEmitTimechainDiag()
+    {
+        if (!timechain_diag.enabled)
+        {
+            return;
+        }
+
+        const auto now = TimechainSteadyClock::now();
+        const double window_seconds =
+            std::chrono::duration<double>(now - timechain_diag.window_start).count();
+        if (window_seconds < 1.0)
+        {
+            return;
+        }
+
+        size_t lidar_buffer_size = 0;
+        size_t imu_buffer_size = 0;
+        size_t time_buffer_size = 0;
+        {
+            std::lock_guard<mutex> lock(mtx_buffer);
+            lidar_buffer_size = lidar_buffer.size();
+            imu_buffer_size = imu_buffer.size();
+            time_buffer_size = time_buffer.size();
+            TimechainDiagRecordBufferSizes();
+        }
+
+        if (timechain_diag.sync_wait_active)
+        {
+            timechain_diag.sync_wait_max = std::max(
+                timechain_diag.sync_wait_max,
+                std::chrono::duration<double>(now - timechain_diag.sync_wait_start).count());
+        }
+
+        const double latest_header_difference =
+            timechain_diag.have_lidar_header && timechain_diag.have_imu_header
+                ? timechain_diag.latest_lidar_header - timechain_diag.latest_imu_header
+                : 0.0;
+        const uint64_t point_count_min =
+            timechain_diag.have_point_count ? timechain_diag.point_count_min : 0;
+        const uint64_t point_count_max =
+            timechain_diag.have_point_count ? timechain_diag.point_count_max : 0;
+        const double lidar_header_delta_min =
+            timechain_diag.have_lidar_header_delta ? timechain_diag.lidar_header_delta_min : 0.0;
+        const double lidar_header_delta_max =
+            timechain_diag.have_lidar_header_delta ? timechain_diag.lidar_header_delta_max : 0.0;
+        const double imu_header_delta_min =
+            timechain_diag.have_imu_header_delta ? timechain_diag.imu_header_delta_min : 0.0;
+        const double imu_header_delta_max =
+            timechain_diag.have_imu_header_delta ? timechain_diag.imu_header_delta_max : 0.0;
+
+        RCLCPP_INFO(
+            this->get_logger(),
+            "[TIMECHAIN] window=%.3f cb_hz[lidar=%.2f imu=%.2f] "
+            "header[lidar=%.6f imu=%.6f diff=%.6f max_abs=%.6f] "
+            "header_dt[lidar=%.6f/%.6f imu=%.6f/%.6f] "
+            "cb_gap_max[lidar=%.6f imu=%.6f] points[%llu/%llu] "
+            "buffer[cur=%zu/%zu/%zu max=%zu/%zu/%zu] rollback[lidar=%llu imu=%llu] "
+            "sync[empty=%llu wait=%llu wait_max=%.6f scans=%llu] "
+            "last_scan[beg=%.6f end=%.6f imu_n=%zu imu=%.6f/%.6f] "
+            "state[pos_norm=%.6f vel_norm=%.6f effective=%d]",
+            window_seconds,
+            static_cast<double>(timechain_diag.lidar_callbacks) / window_seconds,
+            static_cast<double>(timechain_diag.imu_callbacks) / window_seconds,
+            timechain_diag.latest_lidar_header,
+            timechain_diag.latest_imu_header,
+            latest_header_difference,
+            timechain_diag.header_difference_max,
+            lidar_header_delta_min,
+            lidar_header_delta_max,
+            imu_header_delta_min,
+            imu_header_delta_max,
+            timechain_diag.lidar_callback_gap_max,
+            timechain_diag.imu_callback_gap_max,
+            static_cast<unsigned long long>(point_count_min),
+            static_cast<unsigned long long>(point_count_max),
+            lidar_buffer_size,
+            imu_buffer_size,
+            time_buffer_size,
+            timechain_diag.lidar_buffer_max,
+            timechain_diag.imu_buffer_max,
+            timechain_diag.time_buffer_max,
+            static_cast<unsigned long long>(timechain_diag.lidar_rollbacks),
+            static_cast<unsigned long long>(timechain_diag.imu_rollbacks),
+            static_cast<unsigned long long>(timechain_diag.sync_empty_returns),
+            static_cast<unsigned long long>(timechain_diag.sync_wait_returns),
+            timechain_diag.sync_wait_max,
+            static_cast<unsigned long long>(timechain_diag.synced_scans),
+            timechain_diag.last_lidar_begin,
+            timechain_diag.last_lidar_end,
+            timechain_diag.last_selected_imu_count,
+            timechain_diag.last_selected_imu_first,
+            timechain_diag.last_selected_imu_last,
+            state_point.pos.norm(),
+            state_point.vel.norm(),
+            effct_feat_num);
+
+        timechain_diag.ResetWindow(now);
+        timechain_diag.lidar_buffer_max = lidar_buffer_size;
+        timechain_diag.imu_buffer_max = imu_buffer_size;
+        timechain_diag.time_buffer_max = time_buffer_size;
+    }
+
     void timer_callback()
     {
+        MaybeEmitTimechainDiag();
         if(sync_packages(Measures))
         {
             if (flg_first_scan)

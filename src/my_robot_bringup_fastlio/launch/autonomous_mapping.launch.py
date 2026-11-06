@@ -2,8 +2,10 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
@@ -23,8 +25,18 @@ def generate_launch_description():
 
     config_file_arg = DeclareLaunchArgument(
         'config_file',
-        default_value='mid360_fastlio.yaml',
-        description='FAST-LIO config file name',
+        default_value='mid360_fastlio_autonomous.yaml',
+        description='Autonomous-mapping FAST-LIO config file name',
+    )
+
+    scan_params_file_arg = DeclareLaunchArgument(
+        'scan_params_file',
+        default_value=PathJoinSubstitution([
+            bringup_share,
+            'config',
+            'pointcloud_to_laserscan_fastlio_autonomous.yaml',
+        ]),
+        description='Autonomous pointcloud_to_laserscan parameter file',
     )
 
     start_rviz_arg = DeclareLaunchArgument(
@@ -84,6 +96,37 @@ def generate_launch_description():
             'Launch a local Wheeltec chassis driver. Keep false when the shared '
             'robot-base.service is active.'
         ),
+    )
+
+    enable_map_autosave_arg = DeclareLaunchArgument(
+        'enable_map_autosave',
+        default_value='true',
+        description='Periodically save /map and save once more on Ctrl-C',
+    )
+
+    map_output_dir_arg = DeclareLaunchArgument(
+        'map_output_dir',
+        default_value=PathJoinSubstitution([
+            EnvironmentVariable('HOME'),
+            'maps',
+            'autonomous_mapping',
+        ]),
+        description='Directory for autonomous Nav2 .pgm and .yaml map files',
+    )
+
+    map_name_arg = DeclareLaunchArgument(
+        'map_name',
+        default_value='',
+        description=(
+            'Map file prefix. Empty creates autonomous_YYYYMMDD_HHMMSS so '
+            'older sessions are not overwritten.'
+        ),
+    )
+
+    map_autosave_interval_arg = DeclareLaunchArgument(
+        'map_autosave_interval',
+        default_value='60.0',
+        description='Periodic map backup interval in seconds; zero disables it',
     )
 
     car_mode_arg = DeclareLaunchArgument(
@@ -168,6 +211,7 @@ def generate_launch_description():
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'config_path': LaunchConfiguration('config_path'),
             'config_file': LaunchConfiguration('config_file'),
+            'scan_params_file': LaunchConfiguration('scan_params_file'),
             'start_rviz': LaunchConfiguration('start_rviz'),
             'rviz_config': LaunchConfiguration('rviz_config'),
             'body_to_base_x': LaunchConfiguration('body_to_base_x'),
@@ -196,10 +240,50 @@ def generate_launch_description():
         }.items(),
     )
 
+    cmd_vel_shutdown_guard = Node(
+        package='my_robot_bringup_fastlio',
+        executable='cmd_vel_shutdown_guard',
+        name='cmd_vel_shutdown_guard',
+        output='screen',
+        parameters=[{
+            'cmd_vel_topic': '/cmd_vel',
+            'repeat_count': 10,
+            'repeat_interval_ms': 20,
+        }],
+    )
+
+    map_autosaver = Node(
+        package='my_robot_bringup_fastlio',
+        executable='map_autosaver',
+        name='map_autosaver',
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('enable_map_autosave')),
+        parameters=[{
+            'use_sim_time': LaunchConfiguration('use_sim_time'),
+            'map_topic': '/map',
+            'output_directory': ParameterValue(
+                LaunchConfiguration('map_output_dir'),
+                value_type=str,
+            ),
+            'map_name': ParameterValue(
+                LaunchConfiguration('map_name'),
+                value_type=str,
+            ),
+            'map_name_prefix': 'autonomous',
+            'periodic_save_interval': ParameterValue(
+                LaunchConfiguration('map_autosave_interval'),
+                value_type=float,
+            ),
+            'free_threshold': 0.25,
+            'occupied_threshold': 0.65,
+        }],
+    )
+
     return LaunchDescription([
         use_sim_time_arg,
         config_path_arg,
         config_file_arg,
+        scan_params_file_arg,
         start_rviz_arg,
         rviz_config_arg,
         nav2_params_file_arg,
@@ -208,6 +292,10 @@ def generate_launch_description():
         log_level_arg,
         nav2_start_delay_arg,
         start_base_arg,
+        enable_map_autosave_arg,
+        map_output_dir_arg,
+        map_name_arg,
+        map_autosave_interval_arg,
         car_mode_arg,
         imu_mode_arg,
         ranger_avoid_flag_arg,
@@ -218,6 +306,8 @@ def generate_launch_description():
         body_to_base_pitch_arg,
         body_to_base_yaw_arg,
         wheeltec_base_launch,
+        cmd_vel_shutdown_guard,
+        map_autosaver,
         fastlio_slam_launch,
         TimerAction(
             period=LaunchConfiguration('nav2_start_delay'),

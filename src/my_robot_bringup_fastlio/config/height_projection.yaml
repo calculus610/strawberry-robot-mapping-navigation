@@ -1,0 +1,11 @@
+height_projection_map:
+  ros__parameters:
+    cloud_topic: /Laser_map
+    cloud_frame: camera_init
+    map_topic: /map_height_projection
+    # Raw cumulative-map Z, NOT height above the ground or robot base.
+    min_z: -0.2
+    max_z: 0.8
+    resolution: 0.05
+    # Reject excessively large updates, without silently filtering any points.
+    max_grid_cells: 10000000

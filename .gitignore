@@ -32,7 +32,6 @@ Makefile
 .vscode/
 .idea/
 .claude/
-.codex/
 .robot.env
 .DS_Store
 ._*

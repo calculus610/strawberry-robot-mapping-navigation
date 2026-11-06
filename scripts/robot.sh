@@ -124,6 +124,7 @@ sync_workspace() {
     --human-readable
     --itemize-changes
     --exclude=.git/
+    --exclude='**/.git'
     --exclude=.robot.env
     --exclude=build/
     --exclude=install/
@@ -132,6 +133,7 @@ sync_workspace() {
     --exclude=.cache/
     --exclude=.colcon/
     --exclude=.robot-sync-backups/
+    --exclude=robot-downloads/
     --exclude=maps/
     --exclude=__pycache__/
     --exclude='*.pyc'
