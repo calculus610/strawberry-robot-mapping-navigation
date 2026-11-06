@@ -1,10 +1,11 @@
 {
-  "revision": "native180-restoration-v1-20261106",
+  "revision": "native180-restoration-v2-20261106",
   "baseline_git_tag": "native180-original-20261106",
   "baseline_archive_sha256": "dfc1c0733be49ab392ac25ce0adecb04e953d09d8887015b8038915be6724692",
   "available_profiles": [
     0,
-    1
+    1,
+    2
   ],
   "final_topic": "/map",
   "final_frame": "native_projection",
@@ -43,7 +44,7 @@
     "ws/src/fast_lio/package.xml": "a5c9a445f5dd7e69e0ad3c181627ff881e10bfc0ec897830fc69848e4e5cb554",
     "ws/src/fast_lio/rviz/fastlio.rviz": "2a251e66ff8961235af2ccc7db47d99cf8a7c71acf4b73eaa79582cd4ec0a966",
     "ws/src/fast_lio/src/IMU_Processing.hpp": "2b786c50c255a118fe95c9b017ef13af9e27a79b0624a718d4e192c3e5ca138d",
-    "ws/src/fast_lio/src/laserMapping.cpp": "f18bfd137254ea7a6ba5ea686a101449d67ed35f01618785c9f4a44c07fd65f5",
+    "ws/src/fast_lio/src/laserMapping.cpp": "7accc303595ccbad6826c80793206520dc5a3a8317a4197d08ed04ad7715ff2a",
     "ws/src/fast_lio/src/laserMapping.cpp.snapshot_before_timechain_diag_20260822": "c60f718731fcc0cbf382e2c334d3d168cec9e9a4165f0a9f95b7bc35c70c59b5",
     "ws/src/fast_lio/src/native_cloud_filters.hpp": "22bf9c08de46318b8944111f8ea80e43563c35adcc060a8f695c635242ef6f48",
     "ws/src/fast_lio/src/native_height_export.hpp": "08c2ba8eb8cfb269562ec28d14964ec39db37f66020c0bc2567a748dd2d76645",
@@ -62,6 +63,8 @@
   },
   "validation": {
     "projection_tests": 18,
-    "full_ros_build": "pending_robot_connection"
+    "full_ros_build": "pending_robot_connection",
+    "geometry_cpp14": "passed",
+    "boundary_external_support": "passed"
   }
 }

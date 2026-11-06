@@ -2,7 +2,7 @@
 set -euo pipefail
 experiment_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 stage="${NATIVE_OPTIMIZATION_STAGE:-0}"
-[[ "$stage" =~ ^[01]$ ]] || { echo 'Unsupported optimization stage.' >&2; exit 2; }
+[[ "$stage" =~ ^[012]$ ]] || { echo 'Unsupported optimization stage.' >&2; exit 2; }
 for argument in "$@"; do
   [[ "$argument" != optimization_stage:=* ]] || { echo 'Use the versioned startup script to select a stage.' >&2; exit 2; }
 done

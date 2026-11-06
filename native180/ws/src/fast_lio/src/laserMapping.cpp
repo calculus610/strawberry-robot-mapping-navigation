@@ -1176,7 +1176,7 @@ public:
         optimization_options.max_range = this->declare_parameter<double>("optimization.max_range_m", 3.0);
         optimization_options.retention_percent = this->declare_parameter<int>("optimization.retention_percent", 70);
         optimization_options.smoothing = optimization_stage >= 2;
-        if (optimization_stage < 0 || optimization_stage > 1 ||
+        if (optimization_stage < 0 || optimization_stage > 2 ||
             !std::isfinite(optimization_options.max_range) || optimization_options.max_range <= 0.0 ||
             optimization_options.retention_percent < 1 || optimization_options.retention_percent > 100 ||
             (optimization_stage && (!forward180 || !native_map_export)))
