@@ -332,6 +332,10 @@ public:
     void Add_Point_Boxes(vector<BoxPointType> &BoxPoints);
     void Delete_Points(PointVector &PointToDel);
     int Delete_Point_Boxes(vector<BoxPointType> &BoxPoints);
+    // Use on the foreground thread after parallel matching has completed.
+    void Snapshot_Points(PointVector &Storage);
+    void Snapshot_Radius(PointType point, float radius, PointVector &Storage);
+    int Delete_Exact_Points(PointVector &PointToDel);
     void flatten(KD_TREE_NODE *root, PointVector &Storage, delete_point_storage_set storage_type);
     void acquire_removed_points(PointVector &removed_points);
     BoxPointType tree_range();

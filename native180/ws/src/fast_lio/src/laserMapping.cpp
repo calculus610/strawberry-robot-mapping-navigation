@@ -68,6 +68,7 @@
 #include "preprocess.h"
 #include "native_height_export.hpp"
 #include "native_cloud_filters.hpp"
+#include "native_temporal_filter.hpp"
 #include <std_msgs/msg/string.hpp>
 #include <ikd-Tree/ikd_Tree.h>
 
@@ -354,6 +355,16 @@ native_filter::Options optimization_options;
 native_filter::Stats optimization_stats;
 PointCloudXYZI::Ptr raw_forward_observation(new PointCloudXYZI());
 std::size_t optimization_forward_points = 0;
+std::unique_ptr<native_temporal::TemporalFilter> temporal_filter;
+native_temporal::Stats temporal_stats;
+PointVector temporal_delete_points;
+std::size_t temporal_admitted = 0, temporal_removed = 0;
+double temporal_previous_stamp = 0.0;
+V3D temporal_previous_origin = V3D::Zero();
+Eigen::Quaterniond temporal_previous_rotation = Eigen::Quaterniond::Identity();
+double temporal_clear_translation = 0.05, temporal_clear_rotation = 0.10;
+bool temporal_allow_clear = false;
+
 
 
 bool snapshot_native_map()
@@ -363,7 +374,8 @@ bool snapshot_native_map()
     // A fresh snapshot replaces the output; there is NO scan-history cache.
     // Invoked on the same single-threaded executor as map_incremental().
     PointVector points;
-    ikdtree.flatten(ikdtree.Root_Node, points, NOT_RECORD);
+    if (optimization_stage == 3) ikdtree.Snapshot_Points(points);
+    else ikdtree.flatten(ikdtree.Root_Node, points, NOT_RECORD);
     featsFromMap->points.swap(points);
     featsFromMap->width = static_cast<uint32_t>(featsFromMap->points.size());
     featsFromMap->height = 1;
@@ -739,6 +751,75 @@ bool sync_packages(MeasureGroup &meas)
     return true;
 }
 
+native_temporal::Point temporal_point(const PointType &p)
+{
+    return {p.x, p.y, p.z};
+}
+
+void observe_temporal_cloud(bool matched_pose = true)
+{
+    temporal_admitted = 0;
+    temporal_removed = 0;
+    temporal_delete_points.clear();
+    const V3D origin = state_point.pos + state_point.rot * state_point.offset_T_L_I;
+    const Eigen::Quaterniond rotation(state_point.rot.toRotationMatrix() *
+        state_point.offset_R_L_I.toRotationMatrix());
+    const double dt = lidar_end_time - temporal_previous_stamp;
+    double max_gyro = 0.0;
+    bool valid_imu = !Measures.imu.empty();
+    for (const auto &imu : Measures.imu)
+    {
+        const V3D omega = V3D(imu->angular_velocity.x, imu->angular_velocity.y,
+            imu->angular_velocity.z) - state_point.bg;
+        if (!omega.allFinite()) valid_imu = false;
+        else max_gyro = std::max(max_gyro, omega.norm());
+    }
+    temporal_allow_clear = matched_pose && valid_imu &&
+        std::isfinite(state_point.vel.norm()) && state_point.vel.norm() <= temporal_clear_translation &&
+        max_gyro <= temporal_clear_rotation && temporal_previous_stamp > 0.0 && dt > 0.0 && dt <= 0.5 &&
+        (origin - temporal_previous_origin).norm() / dt <= temporal_clear_translation &&
+        rotation.angularDistance(temporal_previous_rotation) / dt <= temporal_clear_rotation;
+    temporal_previous_stamp = matched_pose ? lidar_end_time : 0.0;
+    temporal_previous_origin = origin;
+    temporal_previous_rotation = rotation;
+    std::vector<native_temporal::Point> raw, candidates;
+    raw.reserve(raw_forward_observation->size());
+    candidates.reserve(feats_down_body->size());
+    PointType world;
+    for (const auto &point : raw_forward_observation->points)
+    {
+        pointBodyToWorld(&point, &world);
+        raw.push_back(temporal_point(world));
+    }
+    for (const auto &point : feats_down_body->points)
+    {
+        pointBodyToWorld(&point, &world);
+        candidates.push_back(temporal_point(world));
+    }
+    temporal_stats = temporal_filter->observe(raw, candidates,
+        {origin.x(), origin.y(), origin.z()}, lidar_end_time, temporal_allow_clear);
+    if (temporal_stats.status != native_temporal::Status::ok) return;
+    if (temporal_filter->needsRemovalCandidates())
+    {
+        PointVector snapshot;
+        PointType center;
+        center.x = origin.x(); center.y = origin.y(); center.z = origin.z();
+        ikdtree.Snapshot_Radius(center, static_cast<float>(optimization_options.max_range), snapshot);
+        std::vector<native_temporal::Point> actual_points;
+        actual_points.reserve(snapshot.size());
+        for (const auto &point : snapshot) actual_points.push_back(temporal_point(point));
+        for (const auto index : temporal_filter->collectRemovals(actual_points))
+            temporal_delete_points.push_back(snapshot.at(index));
+    }
+}
+
+void interrupt_temporal_frame()
+{
+    raw_forward_observation->clear();
+    feats_down_body->clear();
+    observe_temporal_cloud(false);
+}
+
 int process_increments = 0;
 void map_incremental()
 {
@@ -750,6 +831,10 @@ void map_incremental()
     {
         /* transform to world frame */
         pointBodyToWorld(&(feats_down_body->points[i]), &(feats_down_world->points[i]));
+        // Preserve native insertion cadence and the matching-neighbor cache.
+        // Delaying these points can starve registration of spatial support;
+        // temporal evidence is used only to remove witnessed stale points.
+        if (optimization_stage == 3) ++temporal_admitted;
         /* decide if need add to map */
         if (!Nearest_Points[i].empty() && flg_EKF_inited)
         {
@@ -1176,11 +1261,32 @@ public:
         optimization_options.max_range = this->declare_parameter<double>("optimization.max_range_m", 3.0);
         optimization_options.retention_percent = this->declare_parameter<int>("optimization.retention_percent", 70);
         optimization_options.smoothing = optimization_stage >= 2;
-        if (optimization_stage < 0 || optimization_stage > 2 ||
+        if (optimization_stage < 0 || optimization_stage > 3 ||
             !std::isfinite(optimization_options.max_range) || optimization_options.max_range <= 0.0 ||
             optimization_options.retention_percent < 1 || optimization_options.retention_percent > 100 ||
             (optimization_stage && (!forward180 || !native_map_export)))
             throw std::invalid_argument("Invalid native mapping optimization parameters");
+        if (optimization_stage == 3)
+        {
+            native_temporal::Options options;
+            options.max_range = optimization_options.max_range;
+            const int hit_frames = this->declare_parameter<int>("optimization.hit_frames", 5);
+            const int free_frames = this->declare_parameter<int>("optimization.free_frames", 4);
+            const int clear_rays = this->declare_parameter<int>("optimization.max_clear_rays", 2048);
+            if (hit_frames <= 0 || free_frames <= 0 || clear_rays <= 0 || clear_rays > 40000)
+                throw std::invalid_argument("Temporal counts and bounded ray budget must be positive");
+            options.hit_frames = static_cast<unsigned>(hit_frames);
+            options.free_frames = static_cast<unsigned>(free_frames);
+            options.max_clear_rays = static_cast<std::size_t>(clear_rays);
+            options.hit_seconds = this->declare_parameter<double>("optimization.hit_seconds", 1.0);
+            options.free_seconds = this->declare_parameter<double>("optimization.free_seconds", 0.3);
+            temporal_clear_translation = this->declare_parameter<double>("optimization.clear_max_translation_m_s", 0.05);
+            temporal_clear_rotation = this->declare_parameter<double>("optimization.clear_max_rotation_rad_s", 0.10);
+            if (!std::isfinite(temporal_clear_translation) || temporal_clear_translation < 0.0 ||
+                !std::isfinite(temporal_clear_rotation) || temporal_clear_rotation < 0.0)
+                throw std::invalid_argument("Invalid temporal clearing motion limits");
+            temporal_filter.reset(new native_temporal::TemporalFilter(options));
+        }
         optimization_metrics_pub_ = this->create_publisher<std_msgs::msg::String>(
             "/fastlio/optimization_metrics", rclcpp::QoS(20).reliable());
         matching_input_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
@@ -1486,12 +1592,25 @@ private:
             svd_time   = 0;
             t0 = omp_get_wtime();
 
+            // Process may return without producing a cloud; never re-thin an old frame.
+            if (optimization_stage > 0)
+            {
+                feats_undistort->clear();
+                if (Measures.imu.empty())
+                {
+                    if (optimization_stage == 3) interrupt_temporal_frame();
+                    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
+                        "Discarding optimization frame without IMU; temporal evidence interrupted");
+                    return;
+                }
+            }
             p_imu->Process(Measures, kf, feats_undistort);
             state_point = kf.get_x();
             pos_lid = state_point.pos + state_point.rot * state_point.offset_T_L_I;
 
             if (feats_undistort->empty() || (feats_undistort == NULL))
             {
+                if (optimization_stage == 3) interrupt_temporal_frame();
                 RCLCPP_WARN(this->get_logger(), "No point, skip this scan!\n");
                 return;
             }
@@ -1531,7 +1650,11 @@ private:
                 keep_forward_half(*feats_undistort, Lidar_R_wrt_IMU);
                 RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 10000,
                     "FORWARD180 full_timing_preserved input=%zu kept=%zu", before, feats_undistort->size());
-                if (feats_undistort->empty()) return;
+                if (feats_undistort->empty())
+                {
+                    if (optimization_stage == 3) interrupt_temporal_frame();
+                    return;
+                }
             }
 
             optimization_forward_points = feats_undistort->size();
@@ -1542,8 +1665,17 @@ private:
                 optimization_stats = native_filter::filter(*feats_undistort,
                     Lidar_R_wrt_IMU, optimization_options);
             }
-            if (optimization_stage > 0) publish_optimization_diagnostics();
-            if (feats_undistort->empty()) return;
+            if (optimization_stage == 1 || optimization_stage == 2) publish_optimization_diagnostics();
+            if (feats_undistort->empty())
+            {
+                if (optimization_stage == 3)
+                {
+                    feats_down_body->clear();
+                    observe_temporal_cloud(false);
+                    publish_optimization_diagnostics();
+                }
+                return;
+            }
 
             flg_EKF_inited = (Measures.lidar_beg_time - first_lidar_time) < INIT_TIME ? \
                             false : true;
@@ -1559,6 +1691,7 @@ private:
             if(ikdtree.Root_Node == nullptr)
             {
                 RCLCPP_INFO(this->get_logger(), "Initialize the map kdtree");
+                if (optimization_stage == 3) observe_temporal_cloud(false);
                 if(feats_down_size > 5)
                 {
                     ikdtree.set_downsample_param(filter_size_map_min);
@@ -1567,8 +1700,14 @@ private:
                     {
                         pointBodyToWorld(&(feats_down_body->points[i]), &(feats_down_world->points[i]));
                     }
+                    // Preserve native initialization: seed with all current
+                    // filtered surface points. A tiny temporally gated seed
+                    // can be geometrically degenerate and corrupt the first
+                    // ESKF match. Temporal admission applies to later writes.
                     ikdtree.Build(feats_down_world->points);
+                    if (optimization_stage == 3) temporal_admitted = feats_down_world->size();
                 }
+                if (optimization_stage == 3) publish_optimization_diagnostics();
                 return;
             }
             int featsFromMapNum = ikdtree.validnum();
@@ -1579,6 +1718,11 @@ private:
             /*** ICP and iterated Kalman filter update ***/
             if (feats_down_size < 5)
             {
+                if (optimization_stage == 3)
+                {
+                    observe_temporal_cloud(false);
+                    publish_optimization_diagnostics();
+                }
                 RCLCPP_WARN(this->get_logger(), "No point, skip this scan!\n");
                 return;
             }
@@ -1624,7 +1768,16 @@ private:
 
             /*** add the feature points to map kdtree ***/
             t3 = omp_get_wtime();
+            if (optimization_stage == 3) observe_temporal_cloud(effct_feat_num >= NUM_MATCH_POINTS);
             map_incremental();
+            if (optimization_stage == 3)
+            {
+                // Insert with the existing matching-neighbor cache first.
+                // Remove exact old points only after current raw-hit protection.
+                if (!temporal_delete_points.empty())
+                    temporal_removed = ikdtree.Delete_Exact_Points(temporal_delete_points);
+                publish_optimization_diagnostics();
+            }
             t5 = omp_get_wtime();
             publish_free_observation(free_scan_pub_, free_pose_pub_);
             
@@ -1689,7 +1842,14 @@ private:
             << ",\"matching_max_range_m\":" << max_range
             << ",\"smoothing_moved\":" << optimization_stats.smoothed_count
             << ",\"smoothing_removed\":" << optimization_stats.outlier_removed
-            << ",\"native_admitted\":0,\"native_removed\":0}";
+            << ",\"native_admitted\":" << temporal_admitted
+            << ",\"native_removed\":" << temporal_removed
+            << ",\"temporal_delete_requested\":" << temporal_delete_points.size()
+            << ",\"temporal_status\":" << static_cast<int>(temporal_stats.status)
+            << ",\"temporal_clear_allowed\":" << (temporal_allow_clear ? "true" : "false")
+            << ",\"temporal_clear_rays\":" << temporal_stats.clear_rays
+            << ",\"temporal_capacity_drops\":" << temporal_stats.capacity_drops
+            << "}";
         std_msgs::msg::String message;
         message.data = out.str();
         optimization_metrics_pub_->publish(message);

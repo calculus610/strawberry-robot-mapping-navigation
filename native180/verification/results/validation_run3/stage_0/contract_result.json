@@ -1,0 +1,48 @@
+{
+  "stage": "0",
+  "session": "/home/wheeltec/manual_native180_backups/20261106_restoration/validation_run3/stage_0",
+  "ground": [
+    -0.012150334137371939,
+    -0.023355191797109584,
+    -0.18607773230467015
+  ],
+  "rotation": [
+    [
+      0.9999999983936925,
+      -3.308722450212111e-24,
+      5.667993591841525e-05
+    ],
+    [
+      2.0632278710133224e-08,
+      0.9999999337469755,
+      -0.00036401379681673266
+    ],
+    [
+      -5.667993216319807e-05,
+      0.0003640137974014508,
+      0.999999932140668
+    ]
+  ],
+  "raw_points_min_max": [
+    1371,
+    1371
+  ],
+  "exact_raw_pose_pairs": 47,
+  "exact_native_map_pairs": 5,
+  "native_save_service_points": 1351,
+  "saved": {
+    "session": "/home/wheeltec/manual_native180_backups/20261106_restoration/validation_run3/stage_0",
+    "map_stamp_ns": 1793969114464915275,
+    "width": 96,
+    "height": 102,
+    "native_source_points": 1351,
+    "native_final_points": 1351,
+    "height_band_points": 476,
+    "occupied_cells": 278,
+    "free_cells": 1204,
+    "unknown_cells": 8310,
+    "verified_required_files": 5
+  },
+  "optimization": null,
+  "dynamic": null
+}

@@ -1,0 +1,62 @@
+{
+  "stage": "1",
+  "session": "/home/wheeltec/manual_native180_backups/20261106_restoration/validation_run3/stage_1",
+  "ground": [
+    -0.017674000130754708,
+    -0.01973266010934511,
+    -0.18379247287137213
+  ],
+  "rotation": [
+    [
+      0.9999999769855079,
+      1.3234889800848443e-23,
+      -0.00021454366357338204
+    ],
+    [
+      8.643027236845528e-08,
+      0.9999999188533865,
+      0.0004028563181020914
+    ],
+    [
+      0.00021454364616389028,
+      -0.0004028563273736251,
+      0.9999998958388963
+    ]
+  ],
+  "raw_points_min_max": [
+    1371,
+    1371
+  ],
+  "exact_raw_pose_pairs": 47,
+  "exact_native_map_pairs": 5,
+  "native_save_service_points": 777,
+  "saved": {
+    "session": "/home/wheeltec/manual_native180_backups/20261106_restoration/validation_run3/stage_1",
+    "map_stamp_ns": 1793969128860068082,
+    "width": 74,
+    "height": 88,
+    "native_source_points": 777,
+    "native_final_points": 777,
+    "height_band_points": 281,
+    "occupied_cells": 130,
+    "free_cells": 1128,
+    "unknown_cells": 5254,
+    "verified_required_files": 5
+  },
+  "optimization": {
+    "exact_diagnostic_pairs": 47,
+    "eligible_min_max": [
+      662,
+      662
+    ],
+    "sampled_min_max": [
+      463,
+      463
+    ],
+    "smoothing_moved_sum": 0,
+    "smoothing_removed_sum": 0,
+    "native_admitted_sum": 0,
+    "native_removed_sum": 0
+  },
+  "dynamic": null
+}

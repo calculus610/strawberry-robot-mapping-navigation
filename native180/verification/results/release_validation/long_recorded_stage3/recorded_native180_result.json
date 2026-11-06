@@ -1,0 +1,90 @@
+{
+  "stage": 3,
+  "bag": "/home/wheeltec/rosbags/stationary_ground_20261021_131314/bag/bag_0.db3",
+  "input_contract_verified": true,
+  "map_saved_and_reconstructed": true,
+  "replay": {
+    "bag_lidar_topic": "/livox/lidar",
+    "bag_lidar_type": "livox_ros_driver2/msg/CustomMsg",
+    "bag_imu_topic": "/livox/imu",
+    "replay_lidar_topic": "/livox/lidar",
+    "replay_imu_topic": "/livox/imu",
+    "lidar_frames_published": 708,
+    "imu_samples_published": 13887,
+    "lidar_header_stamp_ns": [
+      1792559598462127449,
+      1792559670461195174
+    ],
+    "imu_header_stamp_ns": [
+      1792559601217293494,
+      1792559670647905486
+    ],
+    "lidar_point_offset_ns": [
+      0,
+      136180969
+    ],
+    "recorded_elapsed_s": 69.4318265,
+    "wall_replay_elapsed_s": 234.54590241500046,
+    "target_replay_rate": 1.0,
+    "replay_schedule_delay_s": 165.11216915800014,
+    "lidar_decode_conversion": {
+      "median_ms": 182.94049699989046,
+      "p95_ms": 217.75044149990208,
+      "max_ms": 431.8852419992254
+    }
+  },
+  "matching": {
+    "verified_matching_frames": 690,
+    "verified_nonempty_matching_frames": 690,
+    "matching_only_frames_received": 690,
+    "metric_frames_received": 690,
+    "independent_raw_eligible_count_frames": 568,
+    "first_matching_stamp_ns": 1792559601462338924,
+    "last_matching_stamp_ns": 1792559670560692787,
+    "matching_cloud_points_min_max": [
+      126,
+      1027
+    ],
+    "matching_max_range_m": 2.9999836834488907,
+    "matching_stamp_interval": {
+      "median_ms": 99.98703,
+      "p95_ms": 101.1847976,
+      "max_ms": 206.992865
+    },
+    "matching_receive_interval": {
+      "median_ms": 330.5584129993804,
+      "p95_ms": 378.7011666003309,
+      "max_ms": 1076.0257169995384
+    },
+    "native_admitted_reported": 78840,
+    "native_removed_reported": 8,
+    "stage3_temporal_status_counts": {
+      "0": 690
+    }
+  },
+  "supervisor_returncode": 0,
+  "fixed_reference_published": true,
+  "fixed_reference_logged_ready": true,
+  "native_tree_messages": 232,
+  "occupancy_grid_messages": 191,
+  "exact_native_tree_grid_pairs": 191,
+  "raw_forward_frames_received": 568,
+  "exact_free_scan_optical_origin_pairs": 568,
+  "missing_required_files": [],
+  "live_native_black_masks_verified": 191,
+  "saved": {
+    "session": "/home/wheeltec/manual_native180_backups/20261106_restoration/release_validation/long_recorded_stage3",
+    "map_stamp_ns": 1792559670560692787,
+    "width": 112,
+    "height": 111,
+    "native_source_points": 2390,
+    "native_final_points": 2390,
+    "height_band_points": 1448,
+    "occupied_cells": 670,
+    "free_cells": 1112,
+    "unknown_cells": 10650,
+    "verified_required_files": 5
+  },
+  "saved_source_matches_captured_native_snapshot": true,
+  "outcome": "matching_and_saved_map_verified"
+}

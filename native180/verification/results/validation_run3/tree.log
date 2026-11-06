@@ -1,0 +1,14 @@
+Checking exact point deletion and radius
+Multi thread started 
+Rebuild thread terminated normally
+Checking a deletion on a tied split axis
+Multi thread started 
+Rebuild thread terminated normally
+Checking insertion after complete deletion
+Multi thread started 
+Rebuild thread terminated normally
+Checking snapshots and exact content under background rebuild workload
+Multi thread started 
+Observed background root compaction with 7151 expected live points
+Rebuild thread terminated normally
+All native ikd-tree regressions passed

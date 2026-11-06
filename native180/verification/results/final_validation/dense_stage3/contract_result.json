@@ -1,0 +1,67 @@
+{
+  "stage": "3",
+  "session": "/home/wheeltec/manual_native180_backups/20261106_restoration/final_validation/dense_stage3",
+  "ground": [
+    -0.018023546976567387,
+    -0.024229377365064135,
+    -0.18935153964525064
+  ],
+  "rotation": [
+    [
+      0.9999998854153783,
+      -1.3234889800848443e-23,
+      0.0004787162313216377
+    ],
+    [
+      -1.2400901624142487e-07,
+      0.9999999664478596,
+      0.0002590449078560281
+    ],
+    [
+      -0.0004787162152596835,
+      -0.0002590449375385943,
+      0.9999998518632418
+    ]
+  ],
+  "raw_points_min_max": [
+    1371,
+    3002
+  ],
+  "exact_raw_pose_pairs": 76,
+  "exact_native_map_pairs": 7,
+  "native_save_service_points": 632,
+  "saved": {
+    "session": "/home/wheeltec/manual_native180_backups/20261106_restoration/final_validation/dense_stage3",
+    "map_stamp_ns": 1793970688319333791,
+    "width": 74,
+    "height": 88,
+    "native_source_points": 632,
+    "native_final_points": 632,
+    "height_band_points": 215,
+    "occupied_cells": 148,
+    "free_cells": 1543,
+    "unknown_cells": 4821,
+    "verified_required_files": 5
+  },
+  "optimization": {
+    "exact_diagnostic_pairs": 76,
+    "eligible_min_max": [
+      662,
+      2295
+    ],
+    "sampled_min_max": [
+      463,
+      1606
+    ],
+    "smoothing_moved_sum": 11323,
+    "smoothing_removed_sum": 435,
+    "native_admitted_sum": 27761,
+    "native_removed_sum": 11
+  },
+  "dynamic": {
+    "native_panel_points_before": 10,
+    "native_panel_points_after": 0,
+    "clear_fixture": "dense_reveal",
+    "sparse_baseline": "The original sparse reveal retained six panel points. After the unchanged every-third-point preprocessing, the estimated closest background rays passed 20.34\u201333.85 mm from those points. Points without supported ray crossings are retained. The dense reveal exercises clearing with coverage."
+  }
+}

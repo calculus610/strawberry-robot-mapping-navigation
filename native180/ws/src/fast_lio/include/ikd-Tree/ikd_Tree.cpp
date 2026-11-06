@@ -1,5 +1,9 @@
 #include "ikd_Tree.h"
 
+#include <cmath>
+#include <limits>
+#include <memory>
+
 /*
 Description: ikd-Tree: an incremental k-d tree for robotic applications 
 Author: Yixi Cai
@@ -282,26 +286,26 @@ void KD_TREE<PointType>::multi_thread_rebuild()
             if (int(Rebuild_PCL_Storage.size()) > 0)
             {
                 BuildTree(&new_root_node, 0, Rebuild_PCL_Storage.size() - 1, Rebuild_PCL_Storage);
-                // Rebuild has been done. Updates the blocked operations into the new tree
+            }
+            // Even an empty rebuild snapshot can have logged insertions.
+            pthread_mutex_lock(&working_flag_mutex);
+            pthread_mutex_lock(&rebuild_logger_mutex_lock);
+            int tmp_counter = 0;
+            while (!Rebuild_Logger.empty())
+            {
+                Operation = Rebuild_Logger.front();
+                max_queue_size = max(max_queue_size, Rebuild_Logger.size());
+                Rebuild_Logger.pop();
+                pthread_mutex_unlock(&rebuild_logger_mutex_lock);
+                pthread_mutex_unlock(&working_flag_mutex);
+                run_operation(&new_root_node, Operation);
+                tmp_counter++;
+                if (tmp_counter % 10 == 0)
+                    usleep(1);
                 pthread_mutex_lock(&working_flag_mutex);
                 pthread_mutex_lock(&rebuild_logger_mutex_lock);
-                int tmp_counter = 0;
-                while (!Rebuild_Logger.empty())
-                {
-                    Operation = Rebuild_Logger.front();
-                    max_queue_size = max(max_queue_size, Rebuild_Logger.size());
-                    Rebuild_Logger.pop();
-                    pthread_mutex_unlock(&rebuild_logger_mutex_lock);
-                    pthread_mutex_unlock(&working_flag_mutex);
-                    run_operation(&new_root_node, Operation);
-                    tmp_counter++;
-                    if (tmp_counter % 10 == 0)
-                        usleep(1);
-                    pthread_mutex_lock(&working_flag_mutex);
-                    pthread_mutex_lock(&rebuild_logger_mutex_lock);
-                }
-                pthread_mutex_unlock(&rebuild_logger_mutex_lock);
             }
+            pthread_mutex_unlock(&rebuild_logger_mutex_lock);
             /* Replace to original tree*/
             // pthread_mutex_lock(&working_flag_mutex);
             pthread_mutex_lock(&search_flag_mutex);
@@ -328,14 +332,12 @@ void KD_TREE<PointType>::multi_thread_rebuild()
             if (new_root_node != nullptr)
                 new_root_node->father_ptr = father_ptr;
             (*Rebuild_Ptr) = new_root_node;
-            int valid_old = old_root_node->TreeSize - old_root_node->invalid_point_num;
-            int valid_new = new_root_node->TreeSize - new_root_node->invalid_point_num;
             if (father_ptr == STATIC_ROOT_NODE)
                 Root_Node = STATIC_ROOT_NODE->left_son_ptr;
             KD_TREE_NODE *update_root = *Rebuild_Ptr;
-            while (update_root != nullptr && update_root != Root_Node)
+            while (update_root != Root_Node)
             {
-                update_root = update_root->father_ptr;
+                update_root = update_root != nullptr ? update_root->father_ptr : father_ptr;
                 if (update_root->working_flag)
                     break;
                 if (update_root == update_root->father_ptr->left_son_ptr && update_root->father_ptr->need_push_down_to_left)
@@ -348,8 +350,8 @@ void KD_TREE<PointType>::multi_thread_rebuild()
             search_mutex_counter = 0;
             pthread_mutex_unlock(&search_flag_mutex);
             Rebuild_Ptr = nullptr;
-            pthread_mutex_unlock(&working_flag_mutex);
             rebuild_flag = false;
+            pthread_mutex_unlock(&working_flag_mutex);
             /* Delete discarded tree nodes */
             delete_tree_nodes(&old_root_node);
         }
@@ -372,7 +374,7 @@ void KD_TREE<PointType>::run_operation(KD_TREE_NODE **root, Operation_Logger_Typ
     switch (operation.op)
     {
     case ADD_POINT:
-        Add_by_point(root, operation.point, false, (*root)->division_axis);
+        Add_by_point(root, operation.point, false, 2);
         break;
     case ADD_BOX:
         Add_by_range(root, operation.boxpoint, false);
@@ -387,6 +389,7 @@ void KD_TREE<PointType>::run_operation(KD_TREE_NODE **root, Operation_Logger_Typ
         Delete_by_range(root, operation.boxpoint, false, true);
         break;
     case PUSH_DOWN:
+        if (*root == nullptr) break;
         (*root)->tree_downsample_deleted |= operation.tree_downsample_deleted;
         (*root)->point_downsample_deleted |= operation.tree_downsample_deleted;
         (*root)->tree_deleted = operation.tree_deleted || (*root)->tree_downsample_deleted;
@@ -475,6 +478,46 @@ void KD_TREE<PointType>::Radius_Search(PointType point, const float radius, Poin
 }
 
 template <typename PointType>
+void KD_TREE<PointType>::Snapshot_Points(PointVector &Storage)
+{
+    pthread_mutex_lock(&rebuild_ptr_mutex_lock);
+    const std::unique_ptr<pthread_mutex_t, decltype(&pthread_mutex_unlock)>
+        unlock(&rebuild_ptr_mutex_lock, pthread_mutex_unlock);
+    Storage.clear();
+    flatten(Root_Node, Storage, NOT_RECORD);
+}
+
+template <typename PointType>
+void KD_TREE<PointType>::Snapshot_Radius(PointType point, float radius, PointVector &Storage)
+{
+    pthread_mutex_lock(&rebuild_ptr_mutex_lock);
+    const std::unique_ptr<pthread_mutex_t, decltype(&pthread_mutex_unlock)>
+        unlock(&rebuild_ptr_mutex_lock, pthread_mutex_unlock);
+    Radius_Search(point, radius, Storage);
+}
+
+template <typename PointType>
+int KD_TREE<PointType>::Delete_Exact_Points(PointVector &PointToDel)
+{
+    vector<BoxPointType> boxes;
+    boxes.reserve(PointToDel.size());
+    constexpr float infinity = std::numeric_limits<float>::infinity();
+    for (const auto &point : PointToDel)
+    {
+        if (!std::isfinite(point.x) || !std::isfinite(point.y) || !std::isfinite(point.z))
+            continue;
+        // Delete_by_range uses [min, max). No distinct float is in these boxes.
+        boxes.push_back({{point.x, point.y, point.z},
+                         {std::nextafter(point.x, infinity), std::nextafter(point.y, infinity),
+                          std::nextafter(point.z, infinity)}});
+    }
+    pthread_mutex_lock(&rebuild_ptr_mutex_lock);
+    const std::unique_ptr<pthread_mutex_t, decltype(&pthread_mutex_unlock)>
+        unlock(&rebuild_ptr_mutex_lock, pthread_mutex_unlock);
+    return Delete_Point_Boxes(boxes);
+}
+
+template <typename PointType>
 int KD_TREE<PointType>::Add_Points(PointVector &PointToAdd, bool downsample_on)
 {
     int NewPointSize = PointToAdd.size();
@@ -516,7 +559,7 @@ int KD_TREE<PointType>::Add_Points(PointVector &PointToAdd, bool downsample_on)
                 {
                     if (Downsample_Storage.size() > 0)
                         Delete_by_range(&Root_Node, Box_of_Point, true, true);
-                    Add_by_point(&Root_Node, downsample_result, true, Root_Node->division_axis);
+                    Add_by_point(&Root_Node, downsample_result, true, 2);
                     tmp_counter++;
                 }
             }
@@ -532,7 +575,7 @@ int KD_TREE<PointType>::Add_Points(PointVector &PointToAdd, bool downsample_on)
                     pthread_mutex_lock(&working_flag_mutex);
                     if (Downsample_Storage.size() > 0)
                         Delete_by_range(&Root_Node, Box_of_Point, false, true);
-                    Add_by_point(&Root_Node, downsample_result, false, Root_Node->division_axis);
+                    Add_by_point(&Root_Node, downsample_result, false, 2);
                     tmp_counter++;
                     if (rebuild_flag)
                     {
@@ -550,7 +593,7 @@ int KD_TREE<PointType>::Add_Points(PointVector &PointToAdd, bool downsample_on)
         {
             if (Rebuild_Ptr == nullptr || *Rebuild_Ptr != Root_Node)
             {
-                Add_by_point(&Root_Node, PointToAdd[i], true, Root_Node->division_axis);
+                Add_by_point(&Root_Node, PointToAdd[i], true, 2);
             }
             else
             {
@@ -558,7 +601,7 @@ int KD_TREE<PointType>::Add_Points(PointVector &PointToAdd, bool downsample_on)
                 operation.point = PointToAdd[i];
                 operation.op = ADD_POINT;
                 pthread_mutex_lock(&working_flag_mutex);
-                Add_by_point(&Root_Node, PointToAdd[i], false, Root_Node->division_axis);
+                Add_by_point(&Root_Node, PointToAdd[i], false, 2);
                 if (rebuild_flag)
                 {
                     pthread_mutex_lock(&rebuild_logger_mutex_lock);
@@ -757,7 +800,7 @@ void KD_TREE<PointType>::Rebuild(KD_TREE_NODE **root)
         BuildTree(root, 0, PCL_Storage.size() - 1, PCL_Storage);
         if (*root != nullptr)
             (*root)->father_ptr = father_ptr;
-        if (*root == Root_Node)
+        if (root == &Root_Node)
             STATIC_ROOT_NODE->left_son_ptr = *root;
     }
     return;
@@ -1001,6 +1044,16 @@ void KD_TREE<PointType>::Add_by_point(KD_TREE_NODE **root, PointType point, bool
         (*root)->point = point;
         (*root)->division_axis = (father_axis + 1) % 3;
         Update(*root);
+        if (root == &Root_Node)
+        {
+            if (STATIC_ROOT_NODE == nullptr)
+            {
+                STATIC_ROOT_NODE = new KD_TREE_NODE;
+                InitTreeNode(STATIC_ROOT_NODE);
+            }
+            STATIC_ROOT_NODE->left_son_ptr = Root_Node;
+            Root_Node->father_ptr = STATIC_ROOT_NODE;
+        }
         return;
     }
     (*root)->working_flag = true;

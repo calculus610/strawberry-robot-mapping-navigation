@@ -1,0 +1,80 @@
+{
+  "stage": 3,
+  "bag": "/home/wheeltec/zzj_ws_backups/20261106_manual_versions/live_sensor_validation/live_sensor_validation_0.db3",
+  "input_contract_verified": true,
+  "map_saved_and_reconstructed": false,
+  "replay": {
+    "bag_lidar_topic": "/livox/lidar",
+    "bag_lidar_type": "sensor_msgs/msg/PointCloud2",
+    "bag_imu_topic": "/livox/imu",
+    "replay_lidar_topic": "/livox/lidar",
+    "replay_imu_topic": "/livox/imu",
+    "lidar_frames_published": 122,
+    "imu_samples_published": 2433,
+    "lidar_header_stamp_ns": [
+      1793959056327888576,
+      1793959068426802400
+    ],
+    "imu_header_stamp_ns": [
+      1793959056401554891,
+      1793959068556769165
+    ],
+    "lidar_point_offset_ns": [
+      0,
+      108746752
+    ],
+    "recorded_elapsed_s": 12.138840952,
+    "wall_replay_elapsed_s": 52.72655504100021,
+    "target_replay_rate": 0.5,
+    "replay_schedule_delay_s": 28.44750166799986,
+    "lidar_decode_conversion": {
+      "median_ms": 191.4709225002298,
+      "p95_ms": 223.1804561000899,
+      "max_ms": 244.88109100002475
+    }
+  },
+  "matching": {
+    "verified_matching_frames": 120,
+    "verified_nonempty_matching_frames": 120,
+    "matching_only_frames_received": 120,
+    "metric_frames_received": 120,
+    "independent_raw_eligible_count_frames": 0,
+    "first_matching_stamp_ns": 1793959056627374887,
+    "last_matching_stamp_ns": 1793959068525455474,
+    "matching_cloud_points_min_max": [
+      222,
+      615
+    ],
+    "matching_max_range_m": 2.9998287426269834,
+    "matching_stamp_interval": {
+      "median_ms": 100.004435,
+      "p95_ms": 106.0238121,
+      "max_ms": 131.982803
+    },
+    "matching_receive_interval": {
+      "median_ms": 433.5502459998679,
+      "p95_ms": 478.2362359994295,
+      "max_ms": 528.2948499998383
+    },
+    "native_admitted_reported": 11323,
+    "native_removed_reported": 40,
+    "stage3_temporal_status_counts": {
+      "0": 120
+    }
+  },
+  "supervisor_returncode": 1,
+  "fixed_reference_published": false,
+  "fixed_reference_logged_ready": false,
+  "native_tree_messages": 52,
+  "occupancy_grid_messages": 0,
+  "exact_native_tree_grid_pairs": 0,
+  "raw_forward_frames_received": 0,
+  "exact_free_scan_optical_origin_pairs": 0,
+  "missing_required_files": [
+    "map.yaml",
+    "map.pgm",
+    "projection_source_camera_init.pcd",
+    "free_evidence.npz"
+  ],
+  "outcome": "matching_only_no_fixed_reference"
+}

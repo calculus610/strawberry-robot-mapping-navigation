@@ -1,19 +1,33 @@
 {
-  "revision": "native180-restoration-v2-20261106",
+  "revision": "native180-inherited-20261106",
+  "release_git_tag": "native180-inherited-20261106",
   "baseline_git_tag": "native180-original-20261106",
   "baseline_archive_sha256": "dfc1c0733be49ab392ac25ce0adecb04e953d09d8887015b8038915be6724692",
-  "available_profiles": [
-    0,
-    1,
-    2
-  ],
+  "robot_root": "/home/wheeltec/manual_native180_restored_20261106",
+  "available_profiles": {
+    "0": "start_native_v0_original.sh",
+    "1": "start_native_v1_70pct_3m.sh",
+    "2": "start_native_v2_smooth.sh",
+    "3": "start_native_v3_temporal.sh"
+  },
+  "default_profile": 0,
   "final_topic": "/map",
   "final_frame": "native_projection",
   "map_source": "native_ikdtree_snapshot",
   "native_map_voxel_m": 0.1,
+  "surface_match_voxel_m": 0.2,
+  "temporal_insertion": "original_cadence_no_delay",
+  "temporal_deletion": "repeated_observed_ray_crossing",
   "source_hashes": {
+    "run_session.py": "3b275c0fb35ec4defdc57f292371168a175916b9608d313174f6eaa8a8e3ef58",
+    "start_manual_native180.sh": "86f8c53016a86c07973b8ae159bb386bdb2aa0126abaaefeba3c37b8a7b6010b",
+    "start_native_v0_original.sh": "0209399c62962f854c3290b36c4f6b7674bcb40e4da2484aa52284d1b2188cbf",
+    "start_native_v1_70pct_3m.sh": "e1ac64d324c403ae43ef9e472a67a441e4cda69ed86025fc2e91f5b5894ea6a8",
+    "start_native_v2_smooth.sh": "9ddad9594a7082275bcdb20ed93839147100ae7ec8ab8d338bbcd77c05985076",
+    "start_native_v3_temporal.sh": "c6e13b3e63188d5d558018ebc8814856c0f571a9ae9d52bd4dd4d1cc16b9cabf",
     "ws/src/fast_lio/CMakeLists.txt": "4483d4f3072cb2fb448d69b4105b410839fd9bbfcb5c9794737dd68eb2f74f45",
     "ws/src/fast_lio/LICENSE": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+    "ws/src/fast_lio/Log/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "ws/src/fast_lio/config/avia.yaml": "47de1f48a605b04a8fcec4a98a41a13a502dcd5ad39d06ad1c75c9d737e74e00",
     "ws/src/fast_lio/config/horizon.yaml": "816688b9c73a6d93e7f1331ac5d15d4f5720c55bf2bac9c4076b9e2c91e1d730",
     "ws/src/fast_lio/config/mid360.yaml": "0fba8e5d317235b964b84813c9f6019dabd4267f29bedfa03595f29c0cf80aa1",
@@ -33,8 +47,8 @@
     "ws/src/fast_lio/include/IKFoM_toolkit/mtk/types/wrapped_cv_mat.hpp": "3040f43fcb4195a2572a8819be012ebd2c4b59a38cfae86fcac3e01d7039a589",
     "ws/src/fast_lio/include/common_lib.h": "bd9d6cf500f6f77e880c0cbf451ce6fc8b0e6d638773a4580a1ee779744e9e54",
     "ws/src/fast_lio/include/ikd-Tree/README.md": "a7f6feab008dc54a053963fb518e360389ee807af63ebddcc15e90b1ede78073",
-    "ws/src/fast_lio/include/ikd-Tree/ikd_Tree.cpp": "ec3cbbbb6386eb6c68f9aa081c48b5d62209ada44fe167a002d4e3b112a1ea9f",
-    "ws/src/fast_lio/include/ikd-Tree/ikd_Tree.h": "bb87cab944c6c59e0be61cb0b3a2cd0e334d93dc1bf768875058857278135a4b",
+    "ws/src/fast_lio/include/ikd-Tree/ikd_Tree.cpp": "154c12ee3e29da757212d01757d3b432eb59066bd595001be40601ef5cbadd59",
+    "ws/src/fast_lio/include/ikd-Tree/ikd_Tree.h": "5d3b43843456ee728340a0f3e88e452aca9e08cdaef0719647cde7c9270140de",
     "ws/src/fast_lio/include/matplotlibcpp.h": "360d70cb9a7dd6cb981622871204c394b56f856ef42abd0e07a011a5e146f4d6",
     "ws/src/fast_lio/include/so3_math.h": "e02f73dc804c3f539a80fe49d4221a85dbfeaee4cf0b643d7af062b49148e9f7",
     "ws/src/fast_lio/include/use-ikfom.hpp": "1ee2c078ee757ff2dffedf48da764daec152baa79876a70785d010cc2e6165ab",
@@ -44,14 +58,15 @@
     "ws/src/fast_lio/package.xml": "a5c9a445f5dd7e69e0ad3c181627ff881e10bfc0ec897830fc69848e4e5cb554",
     "ws/src/fast_lio/rviz/fastlio.rviz": "2a251e66ff8961235af2ccc7db47d99cf8a7c71acf4b73eaa79582cd4ec0a966",
     "ws/src/fast_lio/src/IMU_Processing.hpp": "2b786c50c255a118fe95c9b017ef13af9e27a79b0624a718d4e192c3e5ca138d",
-    "ws/src/fast_lio/src/laserMapping.cpp": "7accc303595ccbad6826c80793206520dc5a3a8317a4197d08ed04ad7715ff2a",
+    "ws/src/fast_lio/src/laserMapping.cpp": "39f49bbe8a8bff89ce3ebae9038ae2956627e54ece57ce9e4a079575409f5761",
     "ws/src/fast_lio/src/laserMapping.cpp.snapshot_before_timechain_diag_20260822": "c60f718731fcc0cbf382e2c334d3d168cec9e9a4165f0a9f95b7bc35c70c59b5",
     "ws/src/fast_lio/src/native_cloud_filters.hpp": "22bf9c08de46318b8944111f8ea80e43563c35adcc060a8f695c635242ef6f48",
     "ws/src/fast_lio/src/native_height_export.hpp": "08c2ba8eb8cfb269562ec28d14964ec39db37f66020c0bc2567a748dd2d76645",
+    "ws/src/fast_lio/src/native_temporal_filter.hpp": "ba1b383001bc8a6f80ba6cf7d93d6f6546cb66febc0b3fe4c599dbf2b569135f",
     "ws/src/fast_lio/src/preprocess.cpp": "7435e27c74dc6830fe2d948cf7669d086ac77bdd161bbb50b7373f688de2ee21",
     "ws/src/fast_lio/src/preprocess.h": "a03d369d1104a7bf1a3c4fe7e73cfac30de568c0cb0ed5791aa09be21ee52dee",
     "ws/src/native_height_projection/CMakeLists.txt": "e43e7595568071da66c9867faeb0943ca28a0751ba37144bae2d3f77c3c798af",
-    "ws/src/native_height_projection/config/native180_fastlio.yaml": "8efe35693d1bff39471f67543ea07492c3881c5b21452585eaf03d54fe469ed9",
+    "ws/src/native_height_projection/config/native180_fastlio.yaml": "06484c40ddd51617d1fc247e3a05d065b4080364ed46abe04d73da883b982908",
     "ws/src/native_height_projection/config/projection.yaml": "79daeecdead25299039f83c292eefbd5ae4d050f90b1c149e038c0aea73a1f5c",
     "ws/src/native_height_projection/launch/manual_native180.launch.py": "f55e575abc99c9cd2aeb0ab45194cbba9213002c771d49aec46edd86d8ed4ea6",
     "ws/src/native_height_projection/package.xml": "25b23a9bb81d9b13c966a5d260e30a732cd87da093403c8259b16fe0b95eae5c",
@@ -61,10 +76,57 @@
     "ws/src/native_height_projection/scripts/projection_core.py": "efd422b5ff469d43e21f2a4151202c16cc0f75427e9489f3c7dc9198f2a90c8f",
     "ws/src/native_height_projection/src/free_evidence.cpp": "c280b91919776a4480543a1644c3aff91212eb07c99f9833b4c85aeee58398de"
   },
+  "installed_binaries": {
+    "ws/install/fast_lio/lib/fast_lio/fastlio_mapping": {
+      "sha256": "07c374e5aea6962d2745230921601c8878f25f575ef36a9cad49f2af737ab6c4",
+      "bytes": 2240896
+    },
+    "ws/install/native_height_projection/lib/native_height_projection/libfree_evidence.so": {
+      "sha256": "3f6223697ec03e0d805b585a3f57ba765ede8dc1417c0814a2d35d3c47a1cd5f",
+      "bytes": 18080
+    }
+  },
   "validation": {
+    "full_ros_build": "passed",
+    "original_source_unchanged": true,
     "projection_tests": 18,
-    "full_ros_build": "pending_robot_connection",
     "geometry_cpp14": "passed",
-    "boundary_external_support": "passed"
+    "boundary_external_support": "passed",
+    "temporal_scenarios": 8,
+    "native_pcl_tree_regressions": "passed",
+    "stage0_equivalence": "passed",
+    "dense_dynamic_native_points_before_after": [
+      15,
+      0
+    ],
+    "native_cdr_fast_controls": {
+      "0": {
+        "max_estimated_stationary_displacement_m": 0.017362170755227824,
+        "saved_and_reconstructed": true,
+        "replay_wall_seconds": 69.45500538700071,
+        "lidar_messages_published": 708
+      },
+      "1": {
+        "max_estimated_stationary_displacement_m": 0.25577768640622894,
+        "saved_and_reconstructed": true,
+        "replay_wall_seconds": 69.4350161530001,
+        "lidar_messages_published": 708
+      },
+      "2": {
+        "max_estimated_stationary_displacement_m": 0.09649027008857862,
+        "saved_and_reconstructed": true,
+        "replay_wall_seconds": 69.43453789900013,
+        "lidar_messages_published": 708
+      },
+      "3": {
+        "max_estimated_stationary_displacement_m": 0.10920473620899472,
+        "saved_and_reconstructed": true,
+        "replay_wall_seconds": 69.43448512899977,
+        "lidar_messages_published": 708
+      }
+    },
+    "slow_replay_stage3_max_estimated_stationary_displacement_m": 1.8062805527981431,
+    "field_driving_test": "not_performed",
+    "limitations_report": "verification/VALIDATION.md"
   }
 }

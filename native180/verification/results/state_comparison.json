@@ -1,0 +1,272 @@
+{
+  "recorded_stage2/session": {
+    "frames": 119,
+    "max_relative_position_m": 0.03868924804093083,
+    "last_position_m": [
+      0.0217289,
+      -0.0153721,
+      -0.0192087
+    ],
+    "last_velocity_m_s": [
+      0.0180585,
+      -0.0209317,
+      0.00384192
+    ],
+    "no_effective_points_messages": 0
+  },
+  "dense_dynamic_run1/session": {
+    "frames": 110,
+    "max_relative_position_m": 0.03725960477829427,
+    "last_position_m": [
+      -0.0137733,
+      -0.00709867,
+      0.0340349
+    ],
+    "last_velocity_m_s": [
+      0.0136465,
+      0.0109132,
+      0.010573
+    ],
+    "no_effective_points_messages": 0
+  },
+  "validation_run3/stage_1": {
+    "frames": 82,
+    "max_relative_position_m": 0.02323350009158814,
+    "last_position_m": [
+      -0.00646177,
+      0.00376528,
+      0.0188218
+    ],
+    "last_velocity_m_s": [
+      -0.00249626,
+      0.000484702,
+      -0.00161229
+    ],
+    "no_effective_points_messages": 0
+  },
+  "validation_run3/stage_2": {
+    "frames": 82,
+    "max_relative_position_m": 0.025105153667515964,
+    "last_position_m": [
+      -0.00575054,
+      0.00565429,
+      0.0204424
+    ],
+    "last_velocity_m_s": [
+      -0.00221488,
+      -9.59006e-05,
+      -0.000939311
+    ],
+    "no_effective_points_messages": 0
+  },
+  "validation_run3/stage_0": {
+    "frames": 76,
+    "max_relative_position_m": 0.023525364185694907,
+    "last_position_m": [
+      -0.00055028,
+      0.00110745,
+      0.0205402
+    ],
+    "last_velocity_m_s": [
+      0.00192931,
+      0.00355933,
+      -0.00187899
+    ],
+    "no_effective_points_messages": 0
+  },
+  "validation_run3/stage_3": {
+    "frames": 251,
+    "max_relative_position_m": 0.025842984614631876,
+    "last_position_m": [
+      -0.00810139,
+      0.000147606,
+      0.0135003
+    ],
+    "last_velocity_m_s": [
+      -0.00459012,
+      0.000795324,
+      -0.000106391
+    ],
+    "no_effective_points_messages": 0
+  },
+  "validation_run3/stage_original": {
+    "frames": 79,
+    "max_relative_position_m": 0.024231570786893027,
+    "last_position_m": [
+      -0.000997782,
+      -0.000116243,
+      0.0209596
+    ],
+    "last_velocity_m_s": [
+      0.000242006,
+      -0.000604893,
+      0.00174349
+    ],
+    "no_effective_points_messages": 0
+  },
+  "fast_controls/stage_1": {
+    "frames": 690,
+    "max_relative_position_m": 0.25577768640622894,
+    "last_position_m": [
+      0.14338,
+      0.00499055,
+      0.13568
+    ],
+    "last_velocity_m_s": [
+      -0.000855132,
+      0.00428895,
+      0.00245895
+    ],
+    "no_effective_points_messages": 0
+  },
+  "fast_controls/stage_2": {
+    "frames": 690,
+    "max_relative_position_m": 0.09649027008857862,
+    "last_position_m": [
+      0.00532029,
+      -0.0125195,
+      0.0155316
+    ],
+    "last_velocity_m_s": [
+      0.0158725,
+      0.0160557,
+      0.000627069
+    ],
+    "no_effective_points_messages": 0
+  },
+  "fast_controls/stage_0": {
+    "frames": 690,
+    "max_relative_position_m": 0.017362170755227824,
+    "last_position_m": [
+      -0.00385601,
+      -0.00847476,
+      -0.000954078
+    ],
+    "last_velocity_m_s": [
+      -0.00242835,
+      -0.00260707,
+      -0.00397685
+    ],
+    "no_effective_points_messages": 0
+  },
+  "fast_controls/stage_3": {
+    "frames": 690,
+    "max_relative_position_m": 0.10920473620899472,
+    "last_position_m": [
+      0.00615527,
+      -0.00859062,
+      0.0151813
+    ],
+    "last_velocity_m_s": [
+      -0.00508272,
+      0.00810822,
+      0.000815907
+    ],
+    "no_effective_points_messages": 0
+  },
+  "recorded_run1/session": {
+    "frames": 109,
+    "max_relative_position_m": 160.13154718560625,
+    "last_position_m": [
+      149.056,
+      -46.0431,
+      -36.0859
+    ],
+    "last_velocity_m_s": [
+      28.3056,
+      -2.97596,
+      -6.8271
+    ],
+    "no_effective_points_messages": 372
+  },
+  "release_validation/long_recorded_stage3": {
+    "frames": 689,
+    "max_relative_position_m": 1.8062805527981431,
+    "last_position_m": [
+      1.65131,
+      0.0233681,
+      0.0116623
+    ],
+    "last_velocity_m_s": [
+      -0.232303,
+      0.0203848,
+      0.0270413
+    ],
+    "no_effective_points_messages": 0
+  },
+  "release_validation/dense_stage3": {
+    "frames": 97,
+    "max_relative_position_m": 0.04297970136930961,
+    "last_position_m": [
+      -0.00834578,
+      -0.00045568,
+      0.0421782
+    ],
+    "last_velocity_m_s": [
+      0.00479535,
+      0.0109822,
+      0.0223117
+    ],
+    "no_effective_points_messages": 0
+  },
+  "release_validation/recorded_stage3": {
+    "frames": 119,
+    "max_relative_position_m": 0.04959808788769936,
+    "last_position_m": [
+      0.0203084,
+      -0.0221138,
+      -0.0393986
+    ],
+    "last_velocity_m_s": [
+      -0.0181306,
+      -0.0301809,
+      -0.0205131
+    ],
+    "no_effective_points_messages": 0
+  },
+  "final_validation/recorded_stage0": {
+    "frames": 119,
+    "max_relative_position_m": 0.02426879693323775,
+    "last_position_m": [
+      -0.0149247,
+      -0.00166921,
+      0.00461738
+    ],
+    "last_velocity_m_s": [
+      -0.00566392,
+      -0.00402841,
+      -0.000988285
+    ],
+    "no_effective_points_messages": 0
+  },
+  "final_validation/dense_stage3": {
+    "frames": 106,
+    "max_relative_position_m": 0.03458901193026098,
+    "last_position_m": [
+      -0.0102173,
+      -0.00342396,
+      0.0323813
+    ],
+    "last_velocity_m_s": [
+      0.011905,
+      -0.00106878,
+      0.0117231
+    ],
+    "no_effective_points_messages": 0
+  },
+  "final_validation/recorded_stage3": {
+    "frames": 119,
+    "max_relative_position_m": 0.2981092864542416,
+    "last_position_m": [
+      -0.201304,
+      0.152749,
+      0.0101072
+    ],
+    "last_velocity_m_s": [
+      0.00298973,
+      0.2402,
+      0.00226989
+    ],
+    "no_effective_points_messages": 0
+  }
+}
