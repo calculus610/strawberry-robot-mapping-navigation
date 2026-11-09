@@ -1,0 +1,12 @@
+START original 2026-11-09T12:52:26+08:00
+{"case": "/home/wheeltec/manual_native180_backups/20261109_v1_3m/fresh_static_comparison/original/recorded_native180_result.json", "odometry": {"frames_received": 884, "first_stamp_ns": 1794199854599886894, "last_stamp_ns": 1794199942900833845, "stamp_sequence_sha256": "e8ab30d2a496b8ac74b89bc4fc257645f45131def37520a4edbc7f9299adbaf3", "max_displacement_from_first_m": 0.023606038778196458, "final_displacement_from_first_m": 0.021135686122707956, "max_step_m": 0.009175824820363655}}
+FINISH original 2026-11-09T12:54:05+08:00
+START v1_run1 2026-11-09T12:54:05+08:00
+{"case": "/home/wheeltec/manual_native180_backups/20261109_v1_3m/fresh_static_comparison/v1_run1/recorded_native180_result.json", "odometry": {"frames_received": 884, "first_stamp_ns": 1794199854599886894, "last_stamp_ns": 1794199942900833845, "stamp_sequence_sha256": "e8ab30d2a496b8ac74b89bc4fc257645f45131def37520a4edbc7f9299adbaf3", "max_displacement_from_first_m": 0.030815531049188376, "final_displacement_from_first_m": 0.024605451734062964, "max_step_m": 0.01087645743083026}}
+FINISH v1_run1 2026-11-09T12:55:44+08:00
+START v1_run2 2026-11-09T12:55:44+08:00
+{"case": "/home/wheeltec/manual_native180_backups/20261109_v1_3m/fresh_static_comparison/v1_run2/recorded_native180_result.json", "odometry": {"frames_received": 884, "first_stamp_ns": 1794199854599886894, "last_stamp_ns": 1794199942900833845, "stamp_sequence_sha256": "e8ab30d2a496b8ac74b89bc4fc257645f45131def37520a4edbc7f9299adbaf3", "max_displacement_from_first_m": 0.030815531049188376, "final_displacement_from_first_m": 0.024605451734062964, "max_step_m": 0.01087645743083026}}
+FINISH v1_run2 2026-11-09T12:57:24+08:00
+START v1_run3 2026-11-09T12:57:24+08:00
+{"case": "/home/wheeltec/manual_native180_backups/20261109_v1_3m/fresh_static_comparison/v1_run3/recorded_native180_result.json", "odometry": {"frames_received": 884, "first_stamp_ns": 1794199854599886894, "last_stamp_ns": 1794199942900833845, "stamp_sequence_sha256": "e8ab30d2a496b8ac74b89bc4fc257645f45131def37520a4edbc7f9299adbaf3", "max_displacement_from_first_m": 0.030815531049188376, "final_displacement_from_first_m": 0.024605451734062964, "max_step_m": 0.01087645743083026}}
+FINISH v1_run3 2026-11-09T12:59:02+08:00

@@ -156,9 +156,69 @@
       "max_displacement_from_first_m": 0.011865176907146795,
       "final_displacement_from_first_m": 0.007316282409045826,
       "max_step_m": 0.005955430887665699
+    },
+    "historical_validation_scope": "stationary_ground_20261021; historical failures remain valid",
+    "fresh_static_scene": {
+      "all_three_100pct_below_5cm": true,
+      "runs": [
+        {
+          "case": "original",
+          "stage": 0,
+          "odometry": {
+            "frames_received": 884,
+            "first_stamp_ns": 1794199854599886894,
+            "last_stamp_ns": 1794199942900833845,
+            "stamp_sequence_sha256": "e8ab30d2a496b8ac74b89bc4fc257645f45131def37520a4edbc7f9299adbaf3",
+            "max_displacement_from_first_m": 0.023606038778196458,
+            "final_displacement_from_first_m": 0.021135686122707956,
+            "max_step_m": 0.009175824820363655
+          }
+        },
+        {
+          "case": "v1_run1",
+          "stage": 1,
+          "odometry": {
+            "frames_received": 884,
+            "first_stamp_ns": 1794199854599886894,
+            "last_stamp_ns": 1794199942900833845,
+            "stamp_sequence_sha256": "e8ab30d2a496b8ac74b89bc4fc257645f45131def37520a4edbc7f9299adbaf3",
+            "max_displacement_from_first_m": 0.030815531049188376,
+            "final_displacement_from_first_m": 0.024605451734062964,
+            "max_step_m": 0.01087645743083026
+          }
+        },
+        {
+          "case": "v1_run2",
+          "stage": 1,
+          "odometry": {
+            "frames_received": 884,
+            "first_stamp_ns": 1794199854599886894,
+            "last_stamp_ns": 1794199942900833845,
+            "stamp_sequence_sha256": "e8ab30d2a496b8ac74b89bc4fc257645f45131def37520a4edbc7f9299adbaf3",
+            "max_displacement_from_first_m": 0.030815531049188376,
+            "final_displacement_from_first_m": 0.024605451734062964,
+            "max_step_m": 0.01087645743083026
+          }
+        },
+        {
+          "case": "v1_run3",
+          "stage": 1,
+          "odometry": {
+            "frames_received": 884,
+            "first_stamp_ns": 1794199854599886894,
+            "last_stamp_ns": 1794199942900833845,
+            "stamp_sequence_sha256": "e8ab30d2a496b8ac74b89bc4fc257645f45131def37520a4edbc7f9299adbaf3",
+            "max_displacement_from_first_m": 0.030815531049188376,
+            "final_displacement_from_first_m": 0.024605451734062964,
+            "max_step_m": 0.01087645743083026
+          }
+        }
+      ],
+      "field_driving_test": "not_performed",
+      "report": "verification/FRESH_STATIC_SCENE_20261109.md"
     }
   },
-  "release_git_tag": "native180-v1-3m-100pct-20261109",
+  "release_git_tag": "native180-v1-3m-static-scene-20261109",
   "installed_binaries": {
     "ws/install/fast_lio/lib/fast_lio/fastlio_mapping": {
       "sha256": "0c483060d9edf54db646ebe8120bb5a39492a5744c87116760ecee48b74dfab5",

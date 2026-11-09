@@ -67,3 +67,7 @@ colcon build --packages-select fast_lio native_height_projection --executor sequ
 
 验证详情和实际限制见 `verification/VALIDATION.md`，机器可读结果见 `verification/results/`。所有离线ROS验证使用独立DDS域、关闭硬件雷达启动、没有发送运动指令。
 回滚：正常结束新版本会话后，执行原入口 `/home/wheeltec/manual_native180_20261022/start_manual_native180.sh`。不删除地图、不修改原版源码或底盘/导航服务。
+
+## 补充现场静态录包
+
+三轮新V1均达到本静止录包5cm首轮目标。 历史录包仍存在米级失稳，尚未通过行驶及动态场景验收。详见 `verification/FRESH_STATIC_SCENE_20261109.md`。

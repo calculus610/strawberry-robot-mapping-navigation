@@ -1,0 +1,1 @@
+wall_s=99.140032 user_cpu_s=87.186776 sys_cpu_s=6.674001 max_rss_kb=165244
