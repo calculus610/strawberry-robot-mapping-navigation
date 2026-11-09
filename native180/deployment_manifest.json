@@ -218,7 +218,7 @@
       "report": "verification/FRESH_STATIC_SCENE_20261109.md"
     }
   },
-  "release_git_tag": "native180-v1-3m-static-scene-20261109",
+  "release_git_tag": "native180-v1-3m-baseline-final-20261109",
   "installed_binaries": {
     "ws/install/fast_lio/lib/fast_lio/fastlio_mapping": {
       "sha256": "0c483060d9edf54db646ebe8120bb5a39492a5744c87116760ecee48b74dfab5",
