@@ -309,7 +309,8 @@ def run(args):
                     check(row["stage"] == int(args.stage), "Wrong optimization stage")
                     check(row["forward_points"] == len(raw), "Original raw observation and forward count differ")
                     check(row["eligible_points"] == count and 0 < count < len(raw), "3 m candidate count differs")
-                    check(row["sampled_points"] == count * 70 // 100, "Expected floor(0.70 * N) points")
+                    check(row["sampled_points"] == count * args.retention_percent // 100,
+                          f"Expected floor({args.retention_percent}% of eligible points) at {stamp}")
                     check(row["matching_input_points"] == len(match) > 0, "Matching input count differs")
                     check(np.isfinite(match).all(), "Nonfinite matching input")
                     max_range = float(np.linalg.norm(match.astype(np.float64), axis=1).max())
@@ -332,6 +333,7 @@ def run(args):
                     moved += row["smoothing_moved"]
                     removed += row["smoothing_removed"]
                 optimization = {
+                    "retention_percent_expected": args.retention_percent,
                     "exact_diagnostic_pairs": len(common),
                     "eligible_min_max": [min(eligible), max(eligible)],
                     "sampled_min_max": [min(sampled), max(sampled)],
@@ -407,9 +409,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runner", type=Path, required=True, help="run_session.py in a built isolated workspace copy")
     parser.add_argument("--stage", required=True, choices=("original", "0", "1", "2", "3"))
+    parser.add_argument("--retention-percent", type=int, default=100,
+                        help="expected retention in the mapper profile (1-100, default: %(default)s)")
     parser.add_argument("--output", type=Path, required=True, help="new session directory")
     parser.add_argument("--exercise-dynamic", action="store_true", help="temporarily occlude a wall for stage 3")
     args = parser.parse_args()
+    if not 1 <= args.retention_percent <= 100:
+        parser.error("--retention-percent must be in [1, 100]")
     if not args.runner.is_file():
         parser.error("--runner must point to an existing supervisor")
     if os.environ.get("ROS_DOMAIN_ID") not in {"83", "84"}:

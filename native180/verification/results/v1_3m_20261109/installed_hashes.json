@@ -1,0 +1,14 @@
+{
+  "ws/install/fast_lio/lib/fast_lio/fastlio_mapping": {
+    "sha256": "0c483060d9edf54db646ebe8120bb5a39492a5744c87116760ecee48b74dfab5",
+    "bytes": 2240896
+  },
+  "ws/install/native_height_projection/lib/native_height_projection/libfree_evidence.so": {
+    "sha256": "3f6223697ec03e0d805b585a3f57ba765ede8dc1417c0814a2d35d3c47a1cd5f",
+    "bytes": 18080
+  },
+  "ws/install/native_height_projection/share/native_height_projection/config/native180_fastlio.yaml": {
+    "sha256": "0f842ba12c10af4f30ed5e491ddcc08dac99261896a52937899c21b6375b094b",
+    "bytes": 1674
+  }
+}

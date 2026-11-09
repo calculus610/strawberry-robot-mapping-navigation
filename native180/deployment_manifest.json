@@ -1,28 +1,33 @@
 {
-  "revision": "native180-inherited-20261106",
-  "release_git_tag": "native180-inherited-20261106",
-  "baseline_git_tag": "native180-original-20261106",
-  "baseline_archive_sha256": "dfc1c0733be49ab392ac25ce0adecb04e953d09d8887015b8038915be6724692",
-  "robot_root": "/home/wheeltec/manual_native180_restored_20261106",
+  "revision": "native180-v1-3m-100pct-20261109",
+  "baseline_git_commit": "13a165885466bfd0f2eabd03124452ec195555f5",
+  "baseline_robot_root": "/home/wheeltec/manual_native180_restored_20261106",
+  "robot_root": "/home/wheeltec/manual_native180_v1_3m_20261109",
   "available_profiles": {
     "0": "start_native_v0_original.sh",
-    "1": "start_native_v1_70pct_3m.sh",
+    "1": "start_native_v1_3m.sh",
     "2": "start_native_v2_smooth.sh",
     "3": "start_native_v3_temporal.sh"
   },
   "default_profile": 0,
+  "validation_scope": [
+    1
+  ],
+  "retention_percent": 100,
+  "max_range_m": 3.0,
+  "point_filter_num": 3,
+  "surface_match_voxel_m": 0.2,
+  "native_map_voxel_m": 0.1,
+  "projection_grid_m": 0.05,
   "final_topic": "/map",
   "final_frame": "native_projection",
   "map_source": "native_ikdtree_snapshot",
-  "native_map_voxel_m": 0.1,
-  "surface_match_voxel_m": 0.2,
-  "temporal_insertion": "original_cadence_no_delay",
-  "temporal_deletion": "repeated_observed_ray_crossing",
+  "field_network_baseline": "ROS_LOCALHOST_ONLY=1 was already present on the robot before this change",
   "source_hashes": {
     "run_session.py": "3b275c0fb35ec4defdc57f292371168a175916b9608d313174f6eaa8a8e3ef58",
-    "start_manual_native180.sh": "86f8c53016a86c07973b8ae159bb386bdb2aa0126abaaefeba3c37b8a7b6010b",
+    "start_manual_native180.sh": "ba8351bcd7cc8c712882f312e29ed97b292e32b2c3bf0a154666ac40c64c5825",
     "start_native_v0_original.sh": "0209399c62962f854c3290b36c4f6b7674bcb40e4da2484aa52284d1b2188cbf",
-    "start_native_v1_70pct_3m.sh": "e1ac64d324c403ae43ef9e472a67a441e4cda69ed86025fc2e91f5b5894ea6a8",
+    "start_native_v1_3m.sh": "e1ac64d324c403ae43ef9e472a67a441e4cda69ed86025fc2e91f5b5894ea6a8",
     "start_native_v2_smooth.sh": "9ddad9594a7082275bcdb20ed93839147100ae7ec8ab8d338bbcd77c05985076",
     "start_native_v3_temporal.sh": "c6e13b3e63188d5d558018ebc8814856c0f571a9ae9d52bd4dd4d1cc16b9cabf",
     "ws/src/fast_lio/CMakeLists.txt": "4483d4f3072cb2fb448d69b4105b410839fd9bbfcb5c9794737dd68eb2f74f45",
@@ -58,15 +63,15 @@
     "ws/src/fast_lio/package.xml": "a5c9a445f5dd7e69e0ad3c181627ff881e10bfc0ec897830fc69848e4e5cb554",
     "ws/src/fast_lio/rviz/fastlio.rviz": "2a251e66ff8961235af2ccc7db47d99cf8a7c71acf4b73eaa79582cd4ec0a966",
     "ws/src/fast_lio/src/IMU_Processing.hpp": "2b786c50c255a118fe95c9b017ef13af9e27a79b0624a718d4e192c3e5ca138d",
-    "ws/src/fast_lio/src/laserMapping.cpp": "39f49bbe8a8bff89ce3ebae9038ae2956627e54ece57ce9e4a079575409f5761",
+    "ws/src/fast_lio/src/laserMapping.cpp": "2f575289583f7131073267f7664ead49cf12c54b16ecf9aa42d6d1083c25497c",
     "ws/src/fast_lio/src/laserMapping.cpp.snapshot_before_timechain_diag_20260822": "c60f718731fcc0cbf382e2c334d3d168cec9e9a4165f0a9f95b7bc35c70c59b5",
-    "ws/src/fast_lio/src/native_cloud_filters.hpp": "22bf9c08de46318b8944111f8ea80e43563c35adcc060a8f695c635242ef6f48",
+    "ws/src/fast_lio/src/native_cloud_filters.hpp": "e3f72495aa2596399a23c80c24750568c79d11a08a7908b4a9ef26d5541c01f6",
     "ws/src/fast_lio/src/native_height_export.hpp": "08c2ba8eb8cfb269562ec28d14964ec39db37f66020c0bc2567a748dd2d76645",
     "ws/src/fast_lio/src/native_temporal_filter.hpp": "ba1b383001bc8a6f80ba6cf7d93d6f6546cb66febc0b3fe4c599dbf2b569135f",
     "ws/src/fast_lio/src/preprocess.cpp": "7435e27c74dc6830fe2d948cf7669d086ac77bdd161bbb50b7373f688de2ee21",
     "ws/src/fast_lio/src/preprocess.h": "a03d369d1104a7bf1a3c4fe7e73cfac30de568c0cb0ed5791aa09be21ee52dee",
     "ws/src/native_height_projection/CMakeLists.txt": "e43e7595568071da66c9867faeb0943ca28a0751ba37144bae2d3f77c3c798af",
-    "ws/src/native_height_projection/config/native180_fastlio.yaml": "06484c40ddd51617d1fc247e3a05d065b4080364ed46abe04d73da883b982908",
+    "ws/src/native_height_projection/config/native180_fastlio.yaml": "0f842ba12c10af4f30ed5e491ddcc08dac99261896a52937899c21b6375b094b",
     "ws/src/native_height_projection/config/projection.yaml": "79daeecdead25299039f83c292eefbd5ae4d050f90b1c149e038c0aea73a1f5c",
     "ws/src/native_height_projection/launch/manual_native180.launch.py": "f55e575abc99c9cd2aeb0ab45194cbba9213002c771d49aec46edd86d8ed4ea6",
     "ws/src/native_height_projection/package.xml": "25b23a9bb81d9b13c966a5d260e30a732cd87da093403c8259b16fe0b95eae5c",
@@ -76,57 +81,92 @@
     "ws/src/native_height_projection/scripts/projection_core.py": "efd422b5ff469d43e21f2a4151202c16cc0f75427e9489f3c7dc9198f2a90c8f",
     "ws/src/native_height_projection/src/free_evidence.cpp": "c280b91919776a4480543a1644c3aff91212eb07c99f9833b4c85aeee58398de"
   },
+  "validation": {
+    "status": "offline_contract_passed",
+    "full_ros_build": "passed",
+    "geometry_cpp14": "passed",
+    "projection_tests": 18,
+    "v1_replay_repetitions_per_retention": 3,
+    "stationary_max_displacement_target_m": 0.05,
+    "stationary_target_passed_all_100pct_runs": false,
+    "measured_runs": [
+      {
+        "case": "p100_r1",
+        "max_displacement_m": 2.098276483073906,
+        "final_displacement_m": 1.9873247603395472,
+        "max_step_m": 0.06459222714028602,
+        "matching_frames": 691,
+        "independent_count_frames": 584,
+        "stationary_target_5cm_passed": false
+      },
+      {
+        "case": "p100_r2",
+        "max_displacement_m": 0.10910775514695935,
+        "final_displacement_m": 0.05644972712731833,
+        "max_step_m": 0.029712597103798085,
+        "matching_frames": 690,
+        "independent_count_frames": 577,
+        "stationary_target_5cm_passed": false
+      },
+      {
+        "case": "p100_r3",
+        "max_displacement_m": 0.1130710854944996,
+        "final_displacement_m": 0.05665419194921061,
+        "max_step_m": 0.04411307115022664,
+        "matching_frames": 689,
+        "independent_count_frames": 642,
+        "stationary_target_5cm_passed": false
+      },
+      {
+        "case": "p70_r1",
+        "max_displacement_m": 0.2424908310298758,
+        "final_displacement_m": 0.20833394147538603,
+        "max_step_m": 0.09547430985071372,
+        "matching_frames": 691,
+        "independent_count_frames": 344,
+        "stationary_target_5cm_passed": false
+      },
+      {
+        "case": "p70_r2",
+        "max_displacement_m": 0.2424908310298758,
+        "final_displacement_m": 0.20833394147538603,
+        "max_step_m": 0.09547430985071372,
+        "matching_frames": 691,
+        "independent_count_frames": 344,
+        "stationary_target_5cm_passed": false
+      },
+      {
+        "case": "p70_r3",
+        "max_displacement_m": 2.475100677824946,
+        "final_displacement_m": 2.4350575685601497,
+        "max_step_m": 0.09547430985071372,
+        "matching_frames": 690,
+        "independent_count_frames": 318,
+        "stationary_target_5cm_passed": false
+      }
+    ],
+    "field_driving_test": "not_performed",
+    "v2_v3": "not_validated_for_100pct",
+    "report": "verification/V1_3M_20261109.md",
+    "stage0_control": {
+      "frames_received": 690,
+      "first_stamp_ns": 1792559601562421798,
+      "last_stamp_ns": 1792559670560692787,
+      "stamp_sequence_sha256": "2434bf4b55909fec5ceec21c0e5ddca188b7388cd9edcad0a86d6d24f6c5e785",
+      "max_displacement_from_first_m": 0.011865176907146795,
+      "final_displacement_from_first_m": 0.007316282409045826,
+      "max_step_m": 0.005955430887665699
+    }
+  },
+  "release_git_tag": "native180-v1-3m-100pct-20261109",
   "installed_binaries": {
     "ws/install/fast_lio/lib/fast_lio/fastlio_mapping": {
-      "sha256": "07c374e5aea6962d2745230921601c8878f25f575ef36a9cad49f2af737ab6c4",
+      "sha256": "0c483060d9edf54db646ebe8120bb5a39492a5744c87116760ecee48b74dfab5",
       "bytes": 2240896
     },
     "ws/install/native_height_projection/lib/native_height_projection/libfree_evidence.so": {
       "sha256": "3f6223697ec03e0d805b585a3f57ba765ede8dc1417c0814a2d35d3c47a1cd5f",
       "bytes": 18080
     }
-  },
-  "validation": {
-    "full_ros_build": "passed",
-    "original_source_unchanged": true,
-    "projection_tests": 18,
-    "geometry_cpp14": "passed",
-    "boundary_external_support": "passed",
-    "temporal_scenarios": 8,
-    "native_pcl_tree_regressions": "passed",
-    "stage0_equivalence": "passed",
-    "dense_dynamic_native_points_before_after": [
-      15,
-      0
-    ],
-    "native_cdr_fast_controls": {
-      "0": {
-        "max_estimated_stationary_displacement_m": 0.017362170755227824,
-        "saved_and_reconstructed": true,
-        "replay_wall_seconds": 69.45500538700071,
-        "lidar_messages_published": 708
-      },
-      "1": {
-        "max_estimated_stationary_displacement_m": 0.25577768640622894,
-        "saved_and_reconstructed": true,
-        "replay_wall_seconds": 69.4350161530001,
-        "lidar_messages_published": 708
-      },
-      "2": {
-        "max_estimated_stationary_displacement_m": 0.09649027008857862,
-        "saved_and_reconstructed": true,
-        "replay_wall_seconds": 69.43453789900013,
-        "lidar_messages_published": 708
-      },
-      "3": {
-        "max_estimated_stationary_displacement_m": 0.10920473620899472,
-        "saved_and_reconstructed": true,
-        "replay_wall_seconds": 69.43448512899977,
-        "lidar_messages_published": 708
-      }
-    },
-    "slow_replay_stage3_max_estimated_stationary_displacement_m": 1.8062805527981431,
-    "field_driving_test": "not_performed",
-    "limitations_report": "verification/VALIDATION.md"
   }
 }

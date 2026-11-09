@@ -60,7 +60,7 @@
     optimization:
       stage: 0
       max_range_m: 3.0
-      retention_percent: 70
+      retention_percent: 100
       hit_frames: 5
       hit_seconds: 1.0
       free_frames: 4

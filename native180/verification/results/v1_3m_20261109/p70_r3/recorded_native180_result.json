@@ -1,0 +1,129 @@
+{
+  "stage": 1,
+  "bag": "/home/wheeltec/rosbags/stationary_ground_20261021_131314/bag/bag_0.db3",
+  "input_contract_verified": true,
+  "map_saved_and_reconstructed": true,
+  "replay": {
+    "bag_lidar_topic": "/livox/lidar",
+    "bag_lidar_type": "livox_ros_driver2/msg/CustomMsg",
+    "bag_imu_topic": "/livox/imu",
+    "replay_lidar_topic": "/livox/lidar",
+    "replay_imu_topic": "/livox/imu",
+    "lidar_frames_published": 708,
+    "imu_samples_published": 13887,
+    "lidar_header_stamp_ns": [
+      1792559598462127449,
+      1792559670461195174
+    ],
+    "imu_header_stamp_ns": [
+      1792559601217293494,
+      1792559670647905486
+    ],
+    "lidar_point_offset_ns": [
+      0,
+      100425457
+    ],
+    "lidar_point_offset_validation": {
+      "mode": "sampled_standard_deserialization",
+      "frames": 5,
+      "sampled_header_stamp_ns": [
+        1792559598462127449,
+        1792559617361902552,
+        1792559635061914570,
+        1792559652761695193,
+        1792559670461195174
+      ]
+    },
+    "lidar_publish_mode": "original_cdr_bytes",
+    "lidar_cdr_headers_checked": 708,
+    "lidar_offset_sample_preflight_ms": 998.8997430000381,
+    "recorded_elapsed_s": 69.4318265,
+    "wall_replay_elapsed_s": 69.4371066800004,
+    "target_replay_rate": 1.0,
+    "replay_schedule_delay_s": 0.0,
+    "lidar_decode_conversion": {
+      "median_ms": 0.04985800023860065,
+      "p95_ms": 0.05698314989786013,
+      "max_ms": 0.1751099998728023
+    },
+    "lidar_publish_call": {
+      "median_ms": 0.5179874997338629,
+      "p95_ms": 0.7110973999715497,
+      "max_ms": 2.839949000190245
+    }
+  },
+  "matching": {
+    "retention_percent_expected": 70,
+    "verified_matching_frames": 690,
+    "verified_nonempty_matching_frames": 690,
+    "matching_only_frames_received": 690,
+    "metric_frames_received": 690,
+    "independent_raw_eligible_count_frames": 318,
+    "first_matching_stamp_ns": 1792559601462338924,
+    "last_matching_stamp_ns": 1792559670560692787,
+    "matching_stamp_sequence_sha256": "3b5e5e8438ee54ef86aae2ea2eeff721f3be3ab46abd76e5261196c57ebba751",
+    "eligible_points_min_max": [
+      180,
+      1471
+    ],
+    "sampled_points_min_max": [
+      126,
+      1029
+    ],
+    "matching_cloud_points_min_max": [
+      126,
+      1029
+    ],
+    "matching_max_range_m": 2.9999873220605573,
+    "matching_stamp_interval": {
+      "median_ms": 99.986553,
+      "p95_ms": 101.1751652,
+      "max_ms": 235.585451
+    },
+    "matching_receive_interval": {
+      "median_ms": 100.0411509994592,
+      "p95_ms": 110.82758120010112,
+      "max_ms": 272.78320500045083
+    },
+    "native_admitted_reported": 0,
+    "native_removed_reported": 0,
+    "stage3_temporal_status_counts": {
+      "0": 690
+    }
+  },
+  "odometry": {
+    "frames_received": 689,
+    "first_stamp_ns": 1792559601562421798,
+    "last_stamp_ns": 1792559670560692787,
+    "stamp_sequence_sha256": "9fa7c1f4405cd208af0173b806390c5225800e09623e05561f2450f8443a8d2f",
+    "max_displacement_from_first_m": 2.475100677824946,
+    "final_displacement_from_first_m": 2.4350575685601497,
+    "max_step_m": 0.09547430985071372
+  },
+  "no_effective_points_messages": 0,
+  "supervisor_returncode": 0,
+  "fixed_reference_published": true,
+  "fixed_reference_logged_ready": true,
+  "native_tree_messages": 70,
+  "occupancy_grid_messages": 33,
+  "exact_native_tree_grid_pairs": 33,
+  "raw_forward_frames_received": 318,
+  "exact_free_scan_optical_origin_pairs": 318,
+  "missing_required_files": [],
+  "live_native_black_masks_verified": 33,
+  "saved": {
+    "session": "/home/wheeltec/manual_native180_backups/20261109_v1_3m/comparison_run2/p70_r3",
+    "map_stamp_ns": 1792559670560692787,
+    "width": 127,
+    "height": 112,
+    "native_source_points": 3066,
+    "native_final_points": 3066,
+    "height_band_points": 1871,
+    "occupied_cells": 853,
+    "free_cells": 2490,
+    "unknown_cells": 10881,
+    "verified_required_files": 5
+  },
+  "saved_source_matches_captured_native_snapshot": true,
+  "outcome": "matching_and_saved_map_verified"
+}

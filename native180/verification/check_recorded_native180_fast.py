@@ -3,6 +3,7 @@
 
 import argparse
 from contextlib import closing
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -25,6 +26,7 @@ from check_saved_native180 import (
 
 LIDAR_TOPIC = "/livox/lidar"
 IMU_TOPIC = "/livox/imu"
+ODOMETRY_TOPIC = "/Odometry"
 CUSTOM_TYPE = "livox_ros_driver2/msg/CustomMsg"
 CLOUD_TYPE = "sensor_msgs/msg/PointCloud2"
 IMU_TYPE = "sensor_msgs/msg/Imu"
@@ -259,21 +261,25 @@ def replay(connection, spin_until, node, process, lidar, imu, rate):
     }
 
 
-def summarize_matching(stage, matches, metrics, raw, poses, receive_time):
+def summarize_matching(stage, retention_percent, matches, metrics, raw, poses, receive_time):
     pairs = sorted(matches.keys() & metrics.keys())
     check(len(pairs) >= 5, f"Expected five matched diagnostic frames, received {len(pairs)}")
     check(len(raw.keys() & poses.keys()) or not raw, "Raw observation had no exact optical-origin pair")
     independently_counted = 0
     frame_counts, max_ranges = [], []
+    eligible_counts, sampled_counts = [], []
     for stamp in pairs:
         row = metrics[stamp]
         cloud = matches[stamp]
         eligible, sampled = row["eligible_points"], row["sampled_points"]
         check(row["stage"] == stage, f"Wrong optimization stage at {stamp}")
         check(0 <= eligible <= row["forward_points"], f"Invalid eligible count at {stamp}")
-        check(sampled == eligible * 70 // 100, f"Wrong floor(70% of N) sample count at {stamp}")
+        check(sampled == eligible * retention_percent // 100,
+              f"Expected floor({retention_percent}% of eligible points) at {stamp}")
         check(row["matching_input_points"] == len(cloud) == sampled - row["smoothing_removed"],
               f"Matching cloud and counts disagree at {stamp}")
+        if stage == 1:
+            check(row["smoothing_moved"] == row["smoothing_removed"] == 0, f"Stage 1 ran geometry at {stamp}")
         check(row["matching_behind_points"] == 0, f"Metrics report rear matching points at {stamp}")
         if len(cloud):
             check(np.isfinite(cloud).all() and cloud[:, 0].min() >= -1e-5, f"Nonfinite or rear matching point at {stamp}")
@@ -288,11 +294,15 @@ def summarize_matching(stage, matches, metrics, raw, poses, receive_time):
                   f"Independently counted raw frame disagrees with metrics at {stamp}")
             independently_counted += 1
         frame_counts.append(len(cloud))
+        eligible_counts.append(eligible)
+        sampled_counts.append(sampled)
 
     nonempty = sum(count > 0 for count in frame_counts)
     check(nonempty >= 5, f"Only {nonempty} nonempty matching clouds were verified")
     order = np.array(sorted(receive_time[stamp] for stamp in pairs))
+    stamps = np.asarray(pairs, dtype="<i8")
     return {
+        "retention_percent_expected": retention_percent,
         "verified_matching_frames": len(pairs),
         "verified_nonempty_matching_frames": nonempty,
         "matching_only_frames_received": len(matches),
@@ -300,9 +310,12 @@ def summarize_matching(stage, matches, metrics, raw, poses, receive_time):
         "independent_raw_eligible_count_frames": independently_counted,
         "first_matching_stamp_ns": pairs[0],
         "last_matching_stamp_ns": pairs[-1],
+        "matching_stamp_sequence_sha256": hashlib.sha256(stamps.tobytes()).hexdigest(),
+        "eligible_points_min_max": span(eligible_counts),
+        "sampled_points_min_max": span(sampled_counts),
         "matching_cloud_points_min_max": span(frame_counts),
         "matching_max_range_m": max(max_ranges),
-        "matching_stamp_interval": stats_ms(np.diff(np.asarray(pairs, dtype=np.int64)) / 1_000_000),
+        "matching_stamp_interval": stats_ms(np.diff(stamps) / 1_000_000),
         "matching_receive_interval": stats_ms(np.diff(order) * 1000),
         "native_admitted_reported": sum(entry["native_admitted"] for entry in metrics.values()),
         "native_removed_reported": sum(entry["native_removed"] for entry in metrics.values()),
@@ -313,11 +326,30 @@ def summarize_matching(stage, matches, metrics, raw, poses, receive_time):
     }
 
 
+def summarize_odometry(positions):
+    stamps = sorted(positions)
+    summary = {"frames_received": len(stamps)}
+    if stamps:
+        points = np.asarray([positions[stamp] for stamp in stamps])
+        check(np.isfinite(points).all(), "Nonfinite odometry position")
+        displacement = np.linalg.norm(points - points[0], axis=1)
+        steps = np.linalg.norm(np.diff(points, axis=0), axis=1)
+        summary.update({
+            "first_stamp_ns": stamps[0],
+            "last_stamp_ns": stamps[-1],
+            "stamp_sequence_sha256": hashlib.sha256(np.asarray(stamps, dtype="<i8").tobytes()).hexdigest(),
+            "max_displacement_from_first_m": float(displacement.max()),
+            "final_displacement_from_first_m": float(displacement[-1]),
+            "max_step_m": float(steps.max()) if len(steps) else None,
+        })
+    return summary
+
+
 def run(args):
     import rclpy
     from geometry_msgs.msg import PoseStamped
     from livox_ros_driver2.msg import CustomMsg
-    from nav_msgs.msg import OccupancyGrid
+    from nav_msgs.msg import OccupancyGrid, Odometry
     from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, qos_profile_sensor_data
     from sensor_msgs.msg import Imu, PointCloud2
     from std_msgs.msg import String
@@ -333,6 +365,7 @@ def run(args):
         "start_rviz:=false", f"optimization_stage:={args.stage}",
     ]
     matches, raw, poses, trees, grids, metrics, receive_time = {}, {}, {}, {}, {}, {}, {}
+    odometry_positions = {}
     references = []
     errors = []
     report = {
@@ -363,6 +396,9 @@ def run(args):
         except (TypeError, KeyError, ValueError) as error:
             errors.append(str(error))
 
+    def odometry_receiver(message):
+        odometry_positions[stamp_ns(message.header.stamp)] = xyz(message.pose.pose.position)
+
     rclpy.init(args=[])
     node = rclpy.create_node("native180_recorded_contract_source")
     latched = QoSProfile(
@@ -376,6 +412,7 @@ def run(args):
     node.create_subscription(PoseStamped, GROUND_TOPIC, references.append, latched)
     node.create_subscription(OccupancyGrid, MAP_TOPIC, lambda m: grids.update({stamp_ns(m.header.stamp): m}), latched)
     node.create_subscription(String, METRICS_TOPIC, metrics_receiver, best)
+    node.create_subscription(Odometry, ODOMETRY_TOPIC, odometry_receiver, 20)
     lidar = node.create_publisher(CustomMsg, LIDAR_TOPIC, qos_profile_sensor_data)
     imu = node.create_publisher(Imu, IMU_TOPIC, qos_profile_sensor_data)
 
@@ -414,12 +451,16 @@ def run(args):
         check("livox_ros_driver2_node" not in log_text, "Hardware driver appeared in the offline replay launch")
         check(not errors, f"Invalid diagnostic packets: {errors[:5]}")
         if args.stage > 0:
-            report["matching"] = summarize_matching(args.stage, matches, metrics, raw, poses, receive_time)
+            report["matching"] = summarize_matching(
+                args.stage, args.retention_percent, matches, metrics, raw, poses, receive_time,
+            )
             report["input_contract_verified"] = True
         else:
             report["matching"] = None
             report["input_contract_verified"] = None
             report["control_note"] = "Original stage0 intentionally emits no optimization diagnostics"
+        report["odometry"] = summarize_odometry(odometry_positions)
+        report["no_effective_points_messages"] = log_text.count("No Effective Points!")
         report["supervisor_returncode"] = process.returncode
         report["fixed_reference_published"] = bool(references)
         report["fixed_reference_logged_ready"] = "NATIVE_HEIGHT_REFERENCE_READY" in log_text
@@ -490,8 +531,12 @@ def main():
     parser.add_argument("--bag", type=Path, required=True, help="completed rosbag2 SQLite .db3")
     parser.add_argument("--output", type=Path, required=True, help="new output directory")
     parser.add_argument("--stage", type=int, choices=(0, 1, 2, 3), default=3)
+    parser.add_argument("--retention-percent", type=int, default=100,
+                        help="expected retention in the mapper profile (1-100, default: %(default)s)")
     parser.add_argument("--rate", type=float, choices=(0.5, 1.0), default=0.5)
     args = parser.parse_args()
+    if not 1 <= args.retention_percent <= 100:
+        parser.error("--retention-percent must be in [1, 100]")
     if os.environ.get("ROS_DOMAIN_ID") not in {"83", "84"}:
         parser.error("choose isolated ROS_DOMAIN_ID=83 or 84")
     if not args.runner.is_file() or not args.bag.is_file():

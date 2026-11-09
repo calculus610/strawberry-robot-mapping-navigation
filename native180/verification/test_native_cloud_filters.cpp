@@ -80,7 +80,6 @@ void front_and_range()
     append(source, 0.01, 2.2, 2.2);
 
     native_filter::Options options;
-    options.retention_percent = 100;
     Cloud cloud = source;
     const auto counts = native_filter::filter(cloud, identity, options);
     assert(counts.input_count == 11 && counts.eligible_count == 5 && counts.sampled_count == 5);
@@ -157,6 +156,7 @@ void wall_smoothing()
         }
     }
     native_filter::Options options;
+    options.retention_percent = 70;
     auto baseline = source;
     const auto sampled = native_filter::filter(baseline, identity, options);
     assert(sampled.eligible_count == 775 && sampled.sampled_count == 542);
@@ -230,6 +230,7 @@ void outliers_need_presampling_veto()
     for (int i = 0; i < 30; ++i) append(source, 1.2, 0.03, 0.015 * i);
     auto sampled = source;
     native_filter::Options options;
+    options.retention_percent = 70;
     native_filter::filter(sampled, identity, options);
     std::size_t supported_index = 0;
     std::size_t support_index = 0;

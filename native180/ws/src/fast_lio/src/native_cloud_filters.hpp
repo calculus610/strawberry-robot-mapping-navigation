@@ -14,7 +14,7 @@ namespace native_filter {
 
 struct Options {
     double max_range = 3.0;
-    int retention_percent = 70;
+    int retention_percent = 100;
     bool smoothing = false;
 };
 

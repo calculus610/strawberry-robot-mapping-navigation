@@ -186,7 +186,7 @@ def replay(connection, spin_until, node, process, lidar, imu, rate):
     }
 
 
-def summarize_matching(stage, matches, metrics, raw, poses, receive_time):
+def summarize_matching(stage, retention_percent, matches, metrics, raw, poses, receive_time):
     pairs = sorted(matches.keys() & metrics.keys())
     check(len(pairs) >= 5, f"Expected five matched diagnostic frames, received {len(pairs)}")
     check(len(raw.keys() & poses.keys()) or not raw, "Raw observation had no exact optical-origin pair")
@@ -198,9 +198,12 @@ def summarize_matching(stage, matches, metrics, raw, poses, receive_time):
         eligible, sampled = row["eligible_points"], row["sampled_points"]
         check(row["stage"] == stage, f"Wrong optimization stage at {stamp}")
         check(0 <= eligible <= row["forward_points"], f"Invalid eligible count at {stamp}")
-        check(sampled == eligible * 70 // 100, f"Wrong floor(70% of N) sample count at {stamp}")
+        check(sampled == eligible * retention_percent // 100,
+              f"Expected floor({retention_percent}% of eligible points) at {stamp}")
         check(row["matching_input_points"] == len(cloud) == sampled - row["smoothing_removed"],
               f"Matching cloud and counts disagree at {stamp}")
+        if stage == 1:
+            check(row["smoothing_moved"] == row["smoothing_removed"] == 0, f"Stage 1 ran geometry at {stamp}")
         check(row["matching_behind_points"] == 0, f"Metrics report rear matching points at {stamp}")
         if len(cloud):
             check(np.isfinite(cloud).all() and cloud[:, 0].min() >= -1e-5, f"Nonfinite or rear matching point at {stamp}")
@@ -220,6 +223,7 @@ def summarize_matching(stage, matches, metrics, raw, poses, receive_time):
     check(nonempty >= 5, f"Only {nonempty} nonempty matching clouds were verified")
     order = np.array(sorted(receive_time[stamp] for stamp in pairs))
     return {
+        "retention_percent_expected": retention_percent,
         "verified_matching_frames": len(pairs),
         "verified_nonempty_matching_frames": nonempty,
         "matching_only_frames_received": len(matches),
@@ -341,7 +345,9 @@ def run(args):
         check("livox_ros_driver2_node" not in log_text, "Hardware driver appeared in the offline replay launch")
         check(not errors, f"Invalid diagnostic packets: {errors[:5]}")
         if args.stage > 0:
-            report["matching"] = summarize_matching(args.stage, matches, metrics, raw, poses, receive_time)
+            report["matching"] = summarize_matching(
+                args.stage, args.retention_percent, matches, metrics, raw, poses, receive_time,
+            )
             report["input_contract_verified"] = True
         else:
             report["matching"] = None
@@ -417,8 +423,12 @@ def main():
     parser.add_argument("--bag", type=Path, required=True, help="completed rosbag2 SQLite .db3")
     parser.add_argument("--output", type=Path, required=True, help="new output directory")
     parser.add_argument("--stage", type=int, choices=(0, 1, 2, 3), default=3)
+    parser.add_argument("--retention-percent", type=int, default=100,
+                        help="expected retention in the mapper profile (1-100, default: %(default)s)")
     parser.add_argument("--rate", type=float, choices=(0.5, 1.0), default=0.5)
     args = parser.parse_args()
+    if not 1 <= args.retention_percent <= 100:
+        parser.error("--retention-percent must be in [1, 100]")
     if os.environ.get("ROS_DOMAIN_ID") not in {"83", "84"}:
         parser.error("choose isolated ROS_DOMAIN_ID=83 or 84")
     if not args.runner.is_file() or not args.bag.is_file():

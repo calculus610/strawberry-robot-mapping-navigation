@@ -1,0 +1,616 @@
+{
+  "runs": [
+    {
+      "case": "p100_r1",
+      "outcome": "matching_and_saved_map_verified",
+      "error": null,
+      "input_contract_verified": true,
+      "saved_map_verified": true,
+      "max_displacement_m": 2.098276483073906,
+      "final_displacement_m": 1.9873247603395472,
+      "max_step_m": 0.06459222714028602,
+      "odometry_frames": 690,
+      "odometry_stamp_sha256": "2434bf4b55909fec5ceec21c0e5ddca188b7388cd9edcad0a86d6d24f6c5e785",
+      "matching_frames": 691,
+      "matching_stamp_sha256": "7f079545d1f6ea473efe4f71cc9ea90f7bf4d4a4cf02fc3138215f2fbcd3ad05",
+      "independent_count_frames": 584,
+      "eligible_points": [
+        180,
+        1472
+      ],
+      "sampled_points": [
+        180,
+        1472
+      ],
+      "matching_max_range_m": 2.999999906325846,
+      "matching_receive_interval": {
+        "median_ms": 99.88740149992736,
+        "p95_ms": 110.80280934997973,
+        "max_ms": 271.4446250001856
+      },
+      "replay": {
+        "bag_lidar_topic": "/livox/lidar",
+        "bag_lidar_type": "livox_ros_driver2/msg/CustomMsg",
+        "bag_imu_topic": "/livox/imu",
+        "replay_lidar_topic": "/livox/lidar",
+        "replay_imu_topic": "/livox/imu",
+        "lidar_frames_published": 708,
+        "imu_samples_published": 13887,
+        "lidar_header_stamp_ns": [
+          1792559598462127449,
+          1792559670461195174
+        ],
+        "imu_header_stamp_ns": [
+          1792559601217293494,
+          1792559670647905486
+        ],
+        "lidar_point_offset_ns": [
+          0,
+          100425457
+        ],
+        "lidar_point_offset_validation": {
+          "mode": "sampled_standard_deserialization",
+          "frames": 5,
+          "sampled_header_stamp_ns": [
+            1792559598462127449,
+            1792559617361902552,
+            1792559635061914570,
+            1792559652761695193,
+            1792559670461195174
+          ]
+        },
+        "lidar_publish_mode": "original_cdr_bytes",
+        "lidar_cdr_headers_checked": 708,
+        "lidar_offset_sample_preflight_ms": 928.4055820007779,
+        "recorded_elapsed_s": 69.4318265,
+        "wall_replay_elapsed_s": 69.43450792400017,
+        "target_replay_rate": 1.0,
+        "replay_schedule_delay_s": 0.0,
+        "lidar_decode_conversion": {
+          "median_ms": 0.05016200020691031,
+          "p95_ms": 0.056610000365253654,
+          "max_ms": 0.10262800060445443
+        },
+        "lidar_publish_call": {
+          "median_ms": 0.5195080002522445,
+          "p95_ms": 0.6940830000985443,
+          "max_ms": 2.0681760006482364
+        }
+      },
+      "no_effective_points_messages": 0,
+      "resources": {
+        "wall_s": 79.336177,
+        "user_cpu_s": 55.16045,
+        "sys_cpu_s": 5.079646,
+        "max_rss_kb": 152096.0
+      },
+      "stationary_target_5cm_passed": false
+    },
+    {
+      "case": "p100_r2",
+      "outcome": "matching_and_saved_map_verified",
+      "error": null,
+      "input_contract_verified": true,
+      "saved_map_verified": true,
+      "max_displacement_m": 0.10910775514695935,
+      "final_displacement_m": 0.05644972712731833,
+      "max_step_m": 0.029712597103798085,
+      "odometry_frames": 689,
+      "odometry_stamp_sha256": "35731e91a017c513dd6c74e141fc36b972130b0909407fc632a00da2a05ca7ca",
+      "matching_frames": 690,
+      "matching_stamp_sha256": "5ddef901d2f9c875a3305b205dd0c40a1a7c367309aa791a0f717bcffb5c1cb0",
+      "independent_count_frames": 577,
+      "eligible_points": [
+        180,
+        1472
+      ],
+      "sampled_points": [
+        180,
+        1472
+      ],
+      "matching_max_range_m": 2.999991262592088,
+      "matching_receive_interval": {
+        "median_ms": 99.96306799985177,
+        "p95_ms": 109.33969040015654,
+        "max_ms": 280.999040000097
+      },
+      "replay": {
+        "bag_lidar_topic": "/livox/lidar",
+        "bag_lidar_type": "livox_ros_driver2/msg/CustomMsg",
+        "bag_imu_topic": "/livox/imu",
+        "replay_lidar_topic": "/livox/lidar",
+        "replay_imu_topic": "/livox/imu",
+        "lidar_frames_published": 708,
+        "imu_samples_published": 13887,
+        "lidar_header_stamp_ns": [
+          1792559598462127449,
+          1792559670461195174
+        ],
+        "imu_header_stamp_ns": [
+          1792559601217293494,
+          1792559670647905486
+        ],
+        "lidar_point_offset_ns": [
+          0,
+          100425457
+        ],
+        "lidar_point_offset_validation": {
+          "mode": "sampled_standard_deserialization",
+          "frames": 5,
+          "sampled_header_stamp_ns": [
+            1792559598462127449,
+            1792559617361902552,
+            1792559635061914570,
+            1792559652761695193,
+            1792559670461195174
+          ]
+        },
+        "lidar_publish_mode": "original_cdr_bytes",
+        "lidar_cdr_headers_checked": 708,
+        "lidar_offset_sample_preflight_ms": 926.4422430005652,
+        "recorded_elapsed_s": 69.4318265,
+        "wall_replay_elapsed_s": 69.43369038800029,
+        "target_replay_rate": 1.0,
+        "replay_schedule_delay_s": 0.0,
+        "lidar_decode_conversion": {
+          "median_ms": 0.05081800009065773,
+          "p95_ms": 0.05629960032820236,
+          "max_ms": 1.6008929997042287
+        },
+        "lidar_publish_call": {
+          "median_ms": 0.5560689996855217,
+          "p95_ms": 0.7972213998073128,
+          "max_ms": 3.3908179993886733
+        }
+      },
+      "no_effective_points_messages": 0,
+      "resources": {
+        "wall_s": 80.039621,
+        "user_cpu_s": 55.467281,
+        "sys_cpu_s": 5.39189,
+        "max_rss_kb": 150480.0
+      },
+      "stationary_target_5cm_passed": false
+    },
+    {
+      "case": "p100_r3",
+      "outcome": "matching_and_saved_map_verified",
+      "error": null,
+      "input_contract_verified": true,
+      "saved_map_verified": true,
+      "max_displacement_m": 0.1130710854944996,
+      "final_displacement_m": 0.05665419194921061,
+      "max_step_m": 0.04411307115022664,
+      "odometry_frames": 688,
+      "odometry_stamp_sha256": "7e65557d5316565e35dd23b008e4372e8d24d19cd038ec750462348740e63e40",
+      "matching_frames": 689,
+      "matching_stamp_sha256": "1fa9d08a941a8a10850870465529d0e062fbb0a8bc44f3e241849d9a17027ab0",
+      "independent_count_frames": 642,
+      "eligible_points": [
+        180,
+        1471
+      ],
+      "sampled_points": [
+        180,
+        1471
+      ],
+      "matching_max_range_m": 2.9999893662174437,
+      "matching_receive_interval": {
+        "median_ms": 99.99954249997245,
+        "p95_ms": 109.39613110022037,
+        "max_ms": 349.97224700055085
+      },
+      "replay": {
+        "bag_lidar_topic": "/livox/lidar",
+        "bag_lidar_type": "livox_ros_driver2/msg/CustomMsg",
+        "bag_imu_topic": "/livox/imu",
+        "replay_lidar_topic": "/livox/lidar",
+        "replay_imu_topic": "/livox/imu",
+        "lidar_frames_published": 708,
+        "imu_samples_published": 13887,
+        "lidar_header_stamp_ns": [
+          1792559598462127449,
+          1792559670461195174
+        ],
+        "imu_header_stamp_ns": [
+          1792559601217293494,
+          1792559670647905486
+        ],
+        "lidar_point_offset_ns": [
+          0,
+          100425457
+        ],
+        "lidar_point_offset_validation": {
+          "mode": "sampled_standard_deserialization",
+          "frames": 5,
+          "sampled_header_stamp_ns": [
+            1792559598462127449,
+            1792559617361902552,
+            1792559635061914570,
+            1792559652761695193,
+            1792559670461195174
+          ]
+        },
+        "lidar_publish_mode": "original_cdr_bytes",
+        "lidar_cdr_headers_checked": 708,
+        "lidar_offset_sample_preflight_ms": 944.7527379998064,
+        "recorded_elapsed_s": 69.4318265,
+        "wall_replay_elapsed_s": 69.43490756099982,
+        "target_replay_rate": 1.0,
+        "replay_schedule_delay_s": 0.0,
+        "lidar_decode_conversion": {
+          "median_ms": 0.050417500006005866,
+          "p95_ms": 0.055957199992917594,
+          "max_ms": 0.19252000038250117
+        },
+        "lidar_publish_call": {
+          "median_ms": 0.5509170000550512,
+          "p95_ms": 0.693220249740989,
+          "max_ms": 2.456479000102263
+        }
+      },
+      "no_effective_points_messages": 0,
+      "resources": {
+        "wall_s": 79.872994,
+        "user_cpu_s": 55.009133,
+        "sys_cpu_s": 5.586013,
+        "max_rss_kb": 153200.0
+      },
+      "stationary_target_5cm_passed": false
+    },
+    {
+      "case": "p70_r1",
+      "outcome": "matching_and_saved_map_verified",
+      "error": null,
+      "input_contract_verified": true,
+      "saved_map_verified": true,
+      "max_displacement_m": 0.2424908310298758,
+      "final_displacement_m": 0.20833394147538603,
+      "max_step_m": 0.09547430985071372,
+      "odometry_frames": 690,
+      "odometry_stamp_sha256": "2434bf4b55909fec5ceec21c0e5ddca188b7388cd9edcad0a86d6d24f6c5e785",
+      "matching_frames": 691,
+      "matching_stamp_sha256": "7f079545d1f6ea473efe4f71cc9ea90f7bf4d4a4cf02fc3138215f2fbcd3ad05",
+      "independent_count_frames": 344,
+      "eligible_points": [
+        180,
+        1471
+      ],
+      "sampled_points": [
+        126,
+        1029
+      ],
+      "matching_max_range_m": 2.9999826638088014,
+      "matching_receive_interval": {
+        "median_ms": 99.92309850031234,
+        "p95_ms": 110.28020170010677,
+        "max_ms": 269.558505000532
+      },
+      "replay": {
+        "bag_lidar_topic": "/livox/lidar",
+        "bag_lidar_type": "livox_ros_driver2/msg/CustomMsg",
+        "bag_imu_topic": "/livox/imu",
+        "replay_lidar_topic": "/livox/lidar",
+        "replay_imu_topic": "/livox/imu",
+        "lidar_frames_published": 708,
+        "imu_samples_published": 13887,
+        "lidar_header_stamp_ns": [
+          1792559598462127449,
+          1792559670461195174
+        ],
+        "imu_header_stamp_ns": [
+          1792559601217293494,
+          1792559670647905486
+        ],
+        "lidar_point_offset_ns": [
+          0,
+          100425457
+        ],
+        "lidar_point_offset_validation": {
+          "mode": "sampled_standard_deserialization",
+          "frames": 5,
+          "sampled_header_stamp_ns": [
+            1792559598462127449,
+            1792559617361902552,
+            1792559635061914570,
+            1792559652761695193,
+            1792559670461195174
+          ]
+        },
+        "lidar_publish_mode": "original_cdr_bytes",
+        "lidar_cdr_headers_checked": 708,
+        "lidar_offset_sample_preflight_ms": 1432.4050200002603,
+        "recorded_elapsed_s": 69.4318265,
+        "wall_replay_elapsed_s": 69.43429447499966,
+        "target_replay_rate": 1.0,
+        "replay_schedule_delay_s": 0.0,
+        "lidar_decode_conversion": {
+          "median_ms": 0.05041799977334449,
+          "p95_ms": 0.05561799994211469,
+          "max_ms": 0.2229209994766279
+        },
+        "lidar_publish_call": {
+          "median_ms": 0.51013150050494,
+          "p95_ms": 0.7170302000758964,
+          "max_ms": 2.377435000198602
+        }
+      },
+      "no_effective_points_messages": 0,
+      "resources": {
+        "wall_s": 80.509748,
+        "user_cpu_s": 53.550684,
+        "sys_cpu_s": 4.989902,
+        "max_rss_kb": 151912.0
+      },
+      "stationary_target_5cm_passed": false
+    },
+    {
+      "case": "p70_r2",
+      "outcome": "matching_and_saved_map_verified",
+      "error": null,
+      "input_contract_verified": true,
+      "saved_map_verified": true,
+      "max_displacement_m": 0.2424908310298758,
+      "final_displacement_m": 0.20833394147538603,
+      "max_step_m": 0.09547430985071372,
+      "odometry_frames": 690,
+      "odometry_stamp_sha256": "2434bf4b55909fec5ceec21c0e5ddca188b7388cd9edcad0a86d6d24f6c5e785",
+      "matching_frames": 691,
+      "matching_stamp_sha256": "7f079545d1f6ea473efe4f71cc9ea90f7bf4d4a4cf02fc3138215f2fbcd3ad05",
+      "independent_count_frames": 344,
+      "eligible_points": [
+        180,
+        1471
+      ],
+      "sampled_points": [
+        126,
+        1029
+      ],
+      "matching_max_range_m": 2.9999826638088014,
+      "matching_receive_interval": {
+        "median_ms": 100.0355189999027,
+        "p95_ms": 109.62902514966117,
+        "max_ms": 271.19719199981773
+      },
+      "replay": {
+        "bag_lidar_topic": "/livox/lidar",
+        "bag_lidar_type": "livox_ros_driver2/msg/CustomMsg",
+        "bag_imu_topic": "/livox/imu",
+        "replay_lidar_topic": "/livox/lidar",
+        "replay_imu_topic": "/livox/imu",
+        "lidar_frames_published": 708,
+        "imu_samples_published": 13887,
+        "lidar_header_stamp_ns": [
+          1792559598462127449,
+          1792559670461195174
+        ],
+        "imu_header_stamp_ns": [
+          1792559601217293494,
+          1792559670647905486
+        ],
+        "lidar_point_offset_ns": [
+          0,
+          100425457
+        ],
+        "lidar_point_offset_validation": {
+          "mode": "sampled_standard_deserialization",
+          "frames": 5,
+          "sampled_header_stamp_ns": [
+            1792559598462127449,
+            1792559617361902552,
+            1792559635061914570,
+            1792559652761695193,
+            1792559670461195174
+          ]
+        },
+        "lidar_publish_mode": "original_cdr_bytes",
+        "lidar_cdr_headers_checked": 708,
+        "lidar_offset_sample_preflight_ms": 916.5782159998344,
+        "recorded_elapsed_s": 69.4318265,
+        "wall_replay_elapsed_s": 69.4343182850007,
+        "target_replay_rate": 1.0,
+        "replay_schedule_delay_s": 0.0,
+        "lidar_decode_conversion": {
+          "median_ms": 0.04998599979444407,
+          "p95_ms": 0.055330000577669125,
+          "max_ms": 0.11286900007689837
+        },
+        "lidar_publish_call": {
+          "median_ms": 0.535956499788881,
+          "p95_ms": 0.6868010500056698,
+          "max_ms": 2.807468000355584
+        }
+      },
+      "no_effective_points_messages": 0,
+      "resources": {
+        "wall_s": 79.330797,
+        "user_cpu_s": 54.214093,
+        "sys_cpu_s": 4.909748,
+        "max_rss_kb": 151432.0
+      },
+      "stationary_target_5cm_passed": false
+    },
+    {
+      "case": "p70_r3",
+      "outcome": "matching_and_saved_map_verified",
+      "error": null,
+      "input_contract_verified": true,
+      "saved_map_verified": true,
+      "max_displacement_m": 2.475100677824946,
+      "final_displacement_m": 2.4350575685601497,
+      "max_step_m": 0.09547430985071372,
+      "odometry_frames": 689,
+      "odometry_stamp_sha256": "9fa7c1f4405cd208af0173b806390c5225800e09623e05561f2450f8443a8d2f",
+      "matching_frames": 690,
+      "matching_stamp_sha256": "3b5e5e8438ee54ef86aae2ea2eeff721f3be3ab46abd76e5261196c57ebba751",
+      "independent_count_frames": 318,
+      "eligible_points": [
+        180,
+        1471
+      ],
+      "sampled_points": [
+        126,
+        1029
+      ],
+      "matching_max_range_m": 2.9999873220605573,
+      "matching_receive_interval": {
+        "median_ms": 100.0411509994592,
+        "p95_ms": 110.82758120010112,
+        "max_ms": 272.78320500045083
+      },
+      "replay": {
+        "bag_lidar_topic": "/livox/lidar",
+        "bag_lidar_type": "livox_ros_driver2/msg/CustomMsg",
+        "bag_imu_topic": "/livox/imu",
+        "replay_lidar_topic": "/livox/lidar",
+        "replay_imu_topic": "/livox/imu",
+        "lidar_frames_published": 708,
+        "imu_samples_published": 13887,
+        "lidar_header_stamp_ns": [
+          1792559598462127449,
+          1792559670461195174
+        ],
+        "imu_header_stamp_ns": [
+          1792559601217293494,
+          1792559670647905486
+        ],
+        "lidar_point_offset_ns": [
+          0,
+          100425457
+        ],
+        "lidar_point_offset_validation": {
+          "mode": "sampled_standard_deserialization",
+          "frames": 5,
+          "sampled_header_stamp_ns": [
+            1792559598462127449,
+            1792559617361902552,
+            1792559635061914570,
+            1792559652761695193,
+            1792559670461195174
+          ]
+        },
+        "lidar_publish_mode": "original_cdr_bytes",
+        "lidar_cdr_headers_checked": 708,
+        "lidar_offset_sample_preflight_ms": 998.8997430000381,
+        "recorded_elapsed_s": 69.4318265,
+        "wall_replay_elapsed_s": 69.4371066800004,
+        "target_replay_rate": 1.0,
+        "replay_schedule_delay_s": 0.0,
+        "lidar_decode_conversion": {
+          "median_ms": 0.04985800023860065,
+          "p95_ms": 0.05698314989786013,
+          "max_ms": 0.1751099998728023
+        },
+        "lidar_publish_call": {
+          "median_ms": 0.5179874997338629,
+          "p95_ms": 0.7110973999715497,
+          "max_ms": 2.839949000190245
+        }
+      },
+      "no_effective_points_messages": 0,
+      "resources": {
+        "wall_s": 79.403034,
+        "user_cpu_s": 52.724003,
+        "sys_cpu_s": 4.972058,
+        "max_rss_kb": 152072.0
+      },
+      "stationary_target_5cm_passed": false
+    }
+  ],
+  "all_six_complete": true,
+  "all_100pct_static_targets_passed": false,
+  "timing_scope": "Whole replay job including observer and projector; no mapper per-frame latency measured",
+  "field_driving_test": "not_performed",
+  "stage0_control": {
+    "stage": 0,
+    "bag": "/home/wheeltec/rosbags/stationary_ground_20261021_131314/bag/bag_0.db3",
+    "input_contract_verified": null,
+    "map_saved_and_reconstructed": true,
+    "replay": {
+      "bag_lidar_topic": "/livox/lidar",
+      "bag_lidar_type": "livox_ros_driver2/msg/CustomMsg",
+      "bag_imu_topic": "/livox/imu",
+      "replay_lidar_topic": "/livox/lidar",
+      "replay_imu_topic": "/livox/imu",
+      "lidar_frames_published": 708,
+      "imu_samples_published": 13887,
+      "lidar_header_stamp_ns": [
+        1792559598462127449,
+        1792559670461195174
+      ],
+      "imu_header_stamp_ns": [
+        1792559601217293494,
+        1792559670647905486
+      ],
+      "lidar_point_offset_ns": [
+        0,
+        100425457
+      ],
+      "lidar_point_offset_validation": {
+        "mode": "sampled_standard_deserialization",
+        "frames": 5,
+        "sampled_header_stamp_ns": [
+          1792559598462127449,
+          1792559617361902552,
+          1792559635061914570,
+          1792559652761695193,
+          1792559670461195174
+        ]
+      },
+      "lidar_publish_mode": "original_cdr_bytes",
+      "lidar_cdr_headers_checked": 708,
+      "lidar_offset_sample_preflight_ms": 966.6272029999163,
+      "recorded_elapsed_s": 69.4318265,
+      "wall_replay_elapsed_s": 69.43471303800015,
+      "target_replay_rate": 1.0,
+      "replay_schedule_delay_s": 0.0,
+      "lidar_decode_conversion": {
+        "median_ms": 0.04942599980495288,
+        "p95_ms": 0.0569463498322875,
+        "max_ms": 0.3060279996134341
+      },
+      "lidar_publish_call": {
+        "median_ms": 0.4812024999409914,
+        "p95_ms": 0.8580991998314857,
+        "max_ms": 3.955926000344334
+      }
+    },
+    "matching": null,
+    "control_note": "Original stage0 intentionally emits no optimization diagnostics",
+    "odometry": {
+      "frames_received": 690,
+      "first_stamp_ns": 1792559601562421798,
+      "last_stamp_ns": 1792559670560692787,
+      "stamp_sequence_sha256": "2434bf4b55909fec5ceec21c0e5ddca188b7388cd9edcad0a86d6d24f6c5e785",
+      "max_displacement_from_first_m": 0.011865176907146795,
+      "final_displacement_from_first_m": 0.007316282409045826,
+      "max_step_m": 0.005955430887665699
+    },
+    "no_effective_points_messages": 0,
+    "supervisor_returncode": 0,
+    "fixed_reference_published": true,
+    "fixed_reference_logged_ready": true,
+    "native_tree_messages": 53,
+    "occupancy_grid_messages": 47,
+    "exact_native_tree_grid_pairs": 40,
+    "raw_forward_frames_received": 655,
+    "exact_free_scan_optical_origin_pairs": 655,
+    "missing_required_files": [],
+    "live_native_black_masks_verified": 40,
+    "saved": {
+      "session": "/home/wheeltec/manual_native180_backups/20261109_v1_3m/stage0_control",
+      "map_stamp_ns": 1792559670560692787,
+      "width": 255,
+      "height": 474,
+      "native_source_points": 33604,
+      "native_final_points": 33604,
+      "height_band_points": 5374,
+      "occupied_cells": 2722,
+      "free_cells": 6356,
+      "unknown_cells": 111792,
+      "verified_required_files": 5
+    },
+    "saved_source_matches_captured_native_snapshot": true,
+    "outcome": "matching_and_saved_map_verified"
+  }
+}

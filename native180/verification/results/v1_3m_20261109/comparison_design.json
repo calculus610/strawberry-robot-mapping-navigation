@@ -1,0 +1,23 @@
+{
+  "root": "/home/wheeltec/manual_native180_v1_3m_20261109",
+  "mapper_sha256": "0c483060d9edf54db646ebe8120bb5a39492a5744c87116760ecee48b74dfab5",
+  "single_variable": "optimization.retention_percent",
+  "arms": [
+    70,
+    100
+  ],
+  "rate": 1.0,
+  "stage": 1,
+  "repetitions": 3,
+  "runtime_logging": false,
+  "stationary_max_displacement_target_m": 0.05,
+  "timing_scope": "Python resource.getrusage(RUSAGE_CHILDREN) measures the whole replay job CPU, not mapper per-frame latency",
+  "test_order": [
+    "p70_r1",
+    "p100_r1",
+    "p100_r2",
+    "p70_r2",
+    "p70_r3",
+    "p100_r3"
+  ]
+}

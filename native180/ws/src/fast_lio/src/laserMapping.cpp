@@ -1259,7 +1259,7 @@ public:
         native_bottom_height = this->declare_parameter<double>("experiment.sensor_bottom_height", 0.20);
         optimization_stage = this->declare_parameter<int>("optimization.stage", 0);
         optimization_options.max_range = this->declare_parameter<double>("optimization.max_range_m", 3.0);
-        optimization_options.retention_percent = this->declare_parameter<int>("optimization.retention_percent", 70);
+        optimization_options.retention_percent = this->declare_parameter<int>("optimization.retention_percent", 100);
         optimization_options.smoothing = optimization_stage >= 2;
         if (optimization_stage < 0 || optimization_stage > 3 ||
             !std::isfinite(optimization_options.max_range) || optimization_options.max_range <= 0.0 ||

@@ -17,9 +17,28 @@ exec 9>"$experiment_dir/session.lock"
 flock -n 9 || { printf '%s\n' 'This experiment is already starting/running.' >&2; exit 1; }
 mkdir -p /home/wheeltec/maps/manual_native180
 session_dir=$(mktemp -d "/home/wheeltec/maps/manual_native180/native180_v${stage}_$(date +%Y%m%d_%H%M%S)_XXXXXX")
-cp "$experiment_dir/ws/src/native_height_projection/config/"*.yaml "$session_dir/"
+cp "$experiment_dir/ws/install/native_height_projection/share/native_height_projection/config/"*.yaml "$session_dir/"
 cp "$experiment_dir/deployment_manifest.json" "$session_dir/"
-printf '{"optimization_stage":%s}\n' "$stage" > "$session_dir/optimization_profile.json"
+python3 - "$session_dir" "$experiment_dir" "$stage" <<'PY'
+import json
+from pathlib import Path
+import sys
+import yaml
+
+session, root, stage = Path(sys.argv[1]), Path(sys.argv[2]), int(sys.argv[3])
+parameters = yaml.safe_load((session / 'native180_fastlio.yaml').read_text())['/**']['ros__parameters']
+parameters['optimization']['stage'] = stage
+parameters['map_file_path'] = str(session / 'native_map_final_camera_init.pcd')
+profile = {
+    'optimization_stage': stage,
+    'deployment_root': str(root),
+    'retention_percent': parameters['optimization']['retention_percent'],
+    'max_range_m': parameters['optimization']['max_range_m'],
+    'extra_filter_enabled': stage > 0,
+    'fastlio_parameters': parameters,
+}
+(session / 'optimization_profile.json').write_text(json.dumps(profile, indent=2) + '\n')
+PY
 mkdir -p "$experiment_dir/ws/src/fast_lio/Log"
 printf '%s\n' "SESSION_DIR=$session_dir" \
   'Keep stationary on flat ground until NATIVE_HEIGHT_REFERENCE_READY and PROJECTION_READY, then drive manually.' \
@@ -33,7 +52,7 @@ exec env -i \
   LANG=C.UTF-8 LC_ALL=C.UTF-8 \
   DISPLAY=:0 XAUTHORITY=/run/user/1000/gdm/Xauthority \
   XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
-  QT_QPA_PLATFORM=xcb ROS_DOMAIN_ID=0 ROS_LOCALHOST_ONLY=0 \
+  QT_QPA_PLATFORM=xcb ROS_DOMAIN_ID=0 ROS_LOCALHOST_ONLY=1 \
   FAST_LIO_TIMECHAIN_DIAG=1 ROS_LOG_DIR="$session_dir/logs" \
   EXPERIMENT_DIR="$experiment_dir" SESSION_DIR="$session_dir" NATIVE_OPTIMIZATION_STAGE="$stage" \
   bash --noprofile --norc -c '
