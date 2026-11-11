@@ -1,5 +1,15 @@
 # zzj_ws
 
+## 当前实车算法快照（2026-11-11）
+
+本分支的最新手动建图全链位于 **[current_mapping_20261111](current_mapping_20261111/README.md)**：
+原版 FAST-LIO 与高度投影、A005/C/D 后处理、旧占据撤销候选、新的一键实车入口，以及 Livox 驱动和 SDK2 源码。
+快照来自机器人实际部署，逐文件哈希及依赖版本随附；本次不上传地图、点云、观测记录或现场数据。
+离机分析从 [全流程算法说明](current_mapping_20261111/docs/ALGORITHM_CHAIN.md) 开始。
+根部 `native180/` 是历史 V1/3 m 实验，不能替代当前快照中的 `manual_native180_20261022`。
+
+以下保留原工作空间的通用说明。
+
 ROS 2 Humble workspace for the Wheeltec MID360 robot driver and bringup source.
 
 Version-controlled content is kept in `src/` plus workspace-level documentation and helper files.

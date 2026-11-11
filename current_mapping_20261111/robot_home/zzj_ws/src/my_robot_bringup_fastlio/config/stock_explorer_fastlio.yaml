@@ -1,0 +1,23 @@
+frontier_explorer:
+  ros__parameters:
+    # ===== STOCK UPSTREAM EXPLORER (ec530d2) =====
+    # System integration parameters only.
+    # All frontier algorithm parameters use upstream defaults.
+
+    # Real Nav2 action (NOT dummy).
+    navigate_to_pose_action_name: /navigate_to_pose
+
+    # Ackermann robot frame (FAST-LIO).
+    robot_base_frame: fastlio_base_footprint
+
+    # Topics.
+    map_topic: /map
+    costmap_topic: /global_costmap/costmap
+    local_costmap_topic: /local_costmap/costmap
+    global_frame: map
+
+    # autostart is set from launch argument explorer_autostart.
+    # All other parameters use upstream ec530d2 defaults:
+    #   occ_threshold=50, MRTSP dp(15,10), post_goal_settle=0.80s,
+    #   optimization=true, sigma_s=2.0, sigma_r=30.0, dilation_radius=1,
+    #   return_to_start_on_complete=true, etc.

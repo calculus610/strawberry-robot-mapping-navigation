@@ -1,0 +1,40 @@
+rack_obstacle_layer:
+  ros__parameters:
+    stable_frame: camera_init
+    body_frame: body
+    min_height: 0.30
+    max_height: 1.00
+    evidence_xy_size: 0.05
+    evidence_z_size: 0.10
+    min_views: 3
+    min_view_separation: 0.10
+    # User measurement: MID360 bottom surface is 0.20 m above the ground.
+    sensor_bottom_height: 0.20
+    # Official MID360 manual: lidar O is 47 mm above the bottom; IMU is
+    # [11, 23.29, -44.12] mm in the lidar frame. No existing TF is changed.
+    sensor_bottom_body_x: -0.011
+    sensor_bottom_body_y: -0.02329
+    sensor_bottom_body_z: -0.00288
+    # Scan-time IMU and measured sensor height validate a near-ground plane.
+    # Freeze only after continuous stationary geometry agreement; monitor afterward.
+    reference_imu_samples: 100
+    reference_max_gyro: 0.05
+    reference_max_relative_acc_spread: 0.02
+    reference_stable_duration: 3.0
+    reference_stable_frames: 10
+    reference_stable_angle_deg: 0.5
+    reference_stable_offset: 0.03
+    reference_max_imu_ground_angle_deg: 3.0
+    reference_plane_distance: 0.025
+    reference_sensor_height_tolerance: 0.05
+    reference_min_plane_points: 35
+    reference_min_plane_ratio: 0.20
+    reference_ground_max_range: 3.0
+    reference_check_period: 0.2
+    reference_max_age: 2.0
+    reference_monitor_angle_deg: 1.0
+    reference_monitor_offset: 0.06
+    # Missing ground freezes new input; only repeated consistent mismatch resets history.
+    reference_mismatch_confirmations: 3
+    max_grid_cells: 10000000
+    max_evidence_voxels: 1000000

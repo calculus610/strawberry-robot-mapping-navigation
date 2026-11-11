@@ -1,0 +1,37 @@
+frontier_explorer:
+  ros__parameters:
+    # ===== STOCK UPSTREAM EXPLORER (ec530d2) =====
+    # System integration parameters only.
+    # Frontier suppression is enabled below for unattended autonomous exploration.
+
+    # Real Nav2 action (NOT dummy).
+    navigate_to_pose_action_name: /navigate_to_pose
+
+    # Ackermann robot frame (FAST-LIO).
+    robot_base_frame: fastlio_base_footprint
+
+    # Topics.
+    map_topic: /map
+    costmap_topic: /global_costmap/costmap
+    local_costmap_topic: /local_costmap/costmap
+    global_frame: map
+
+    # CORRIDOR FAST-PASS TEST: recheck the selected endpoint against the latest
+    # local/global costmap before dispatch and while the goal is active.
+    goal_skip_on_blocked_goal: true
+
+    # autostart is set from launch argument explorer_autostart.
+    # Retain upstream ec530d2 defaults except for the explicit failure-suppression
+    # policy below. A finalized Nav2 abort suppresses that frontier immediately,
+    # so the scheduler can select another candidate instead of retrying forever.
+    frontier_suppression_enabled: true
+    frontier_suppression_attempt_threshold: 1
+    frontier_suppression_base_size_m: 1.0
+    frontier_suppression_expansion_size_m: 0.5
+    frontier_suppression_timeout_s: 90.0
+    frontier_suppression_no_progress_timeout_s: 20.0
+    frontier_suppression_progress_epsilon_m: 0.05
+    frontier_suppression_startup_grace_period_s: 15.0
+    frontier_suppression_max_attempt_records: 256
+    frontier_suppression_max_regions: 64
+    all_frontiers_suppressed_behavior: stay

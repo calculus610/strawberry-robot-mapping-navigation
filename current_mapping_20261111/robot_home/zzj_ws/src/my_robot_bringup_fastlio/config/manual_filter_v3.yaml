@@ -1,0 +1,17 @@
+manual_cloud_filter:
+  ros__parameters:
+    stage: 3
+    max_range_m: 3.0
+    retention_percent: 70
+    voxel_size_m: 0.05
+    max_voxels: 500000
+    hit_frames: 5
+    hit_seconds: 1.0
+    free_frames: 4
+    free_seconds: 0.3
+    endpoint_margin_m: 0.15
+    max_clear_rays: 2048
+    # Scan-end optical origin approximates the origin during the scan.
+    # Clear only near standstill; recording static geometry continues while moving.
+    clear_max_translation_m_s: 0.05
+    clear_max_rotation_rad_s: 0.10

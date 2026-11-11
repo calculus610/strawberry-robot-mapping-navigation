@@ -1,0 +1,8 @@
+scan_qos_relay:
+  ros__parameters:
+    input_topic: /scan_raw
+    output_topic: /scan
+    # 这是实时避障数据而不是需要逐帧回放的记录流。两端均只保留最新帧，
+    # 防止可靠发布者在负载抖动时继续传播已经过期的扫描。
+    input_queue_depth: 1
+    output_queue_depth: 1
