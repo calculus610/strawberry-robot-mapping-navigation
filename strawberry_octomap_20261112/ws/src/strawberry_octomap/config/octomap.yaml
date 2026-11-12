@@ -1,0 +1,19 @@
+/manual_octomap/octomap_server:
+  ros__parameters:
+    frame_id: strawberry_ground
+    base_frame_id: strawberry_ground
+    resolution: 0.05
+    # Projection band only. Do not discard out-of-band real ray endpoints.
+    occupancy_min_z: 0.10
+    occupancy_max_z: 1.25
+    filter_ground_plane: false
+    filter_speckles: false
+    compress_map: false
+    incremental_2D_projection: false
+    latch: true
+    publish_free_space: false
+    sensor_model.max_range: 5.0
+    sensor_model.hit: 0.75
+    sensor_model.miss: 0.45
+    sensor_model.min: 0.12
+    sensor_model.max: 0.97

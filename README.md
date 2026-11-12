@@ -1,8 +1,15 @@
 # zzj_ws
 
-## 当前实车算法快照（2026-11-11）
+## 当前手动建图：FAST-LIO + OctoMap（2026-11-12）
 
-本分支的最新手动建图全链位于 **[current_mapping_20261111](current_mapping_20261111/README.md)**：
+当前独立工程位于 **[strawberry_octomap_20261112](strawberry_octomap_20261112/README.md)**。
+Web 对接同事请直接阅读 **[手动建图系统原理与 Web 接口说明](strawberry_octomap_20261112/docs/手动建图系统原理与Web接口说明.md)**，其中包含启动指令、地图保存位置、ROS topic/service/TF、QoS、会话状态、录包与内存记录。
+
+这份源码快照对应机器人当前 5 cm / hit 0.75 / miss 0.45 / 0.30 m 盲区配置。保留 FAST-LIO 定位，使用 OctoMap 在线更新并投影二维图；停止只冻结保存，不运行旧版离线优化。新增提交只包含源码、配置、文档及来源哈希，不上传建图数据。
+
+## 历史实车算法快照（2026-11-11）
+
+此前手动建图全链位于 **[current_mapping_20261111](current_mapping_20261111/README.md)**：
 原版 FAST-LIO 与高度投影、A005/C/D 后处理、旧占据撤销候选、新的一键实车入口，以及 Livox 驱动和 SDK2 源码。
 快照来自机器人实际部署，逐文件哈希及依赖版本随附；本次不上传地图、点云、观测记录或现场数据。
 离机分析从 [全流程算法说明](current_mapping_20261111/docs/ALGORITHM_CHAIN.md) 开始。

@@ -1,0 +1,44 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Global Options:
+    Background Color: 45; 45; 45
+    Fixed Frame: strawberry_ground
+    Frame Rate: 15
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 20
+      Color: 105; 105; 105
+    - Class: rviz_default_plugins/Map
+      Name: Candidate map
+      Enabled: true
+      Alpha: 1
+      Color Scheme: map
+      Draw Behind: false
+      Topic:
+        Value: /strawberry_octomap/map
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Depth: 1
+      Use Timestamp: false
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Measure
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Name: Current View
+      Scale: 55
+      Target Frame: strawberry_ground
+      X: 0
+      Y: 0
+Window Geometry:
+  Width: 1100
+  Height: 850

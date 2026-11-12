@@ -1,0 +1,174 @@
+--- a/external_manual.py
++++ b/external_manual.py
+@@ -21,6 +21,14 @@
+ NO_DOWNSAMPLE_SESSION_ROOT = Path('/home/wheeltec/maps/manual_no_downsample')
+ NO_DOWNSAMPLE_LOCK = Path('/home/wheeltec/manual_native180_20261022/session.lock')
+ NO_DOWNSAMPLE_TOKEN = b'NO_DOWNSAMPLE_OWNER_TOKEN='
++STRAWBERRY_ROOT = Path('/home/wheeltec/strawberry_octomap_20261112')
++STRAWBERRY_TOKEN = b'STRAWBERRY_OCTOMAP_OWNER_TOKEN='
++STRAWBERRY_EXECUTABLES = {
++    '/strawberry_octomap/livox_lidar_publisher': 'livox_ros_driver2/lib/livox_ros_driver2/livox_ros_driver2_node',
++    '/strawberry_octomap/fastlio_mapping': 'fast_lio/lib/fast_lio/fastlio_mapping',
++    '/strawberry_octomap/observation_bridge': 'strawberry_octomap/lib/strawberry_octomap/observation_bridge.py',
++    '/manual_octomap/octomap_server': 'strawberry_octomap/lib/strawberry_octomap/occupancy_server',
++}
+ MANUAL_NODES = frozenset(('/laser_mapping', '/native_height_projector', '/livox_lidar_publisher'))
+ LIVOX_EXECUTABLE = Path('/home/wheeltec/zzj_ws/install/livox_ros_driver2/lib/livox_ros_driver2/livox_ros_driver2_node')
+ PYTHON_EXECUTABLE = Path('/usr/bin/python3')
+@@ -114,8 +122,8 @@
+             return None
+         return root, launches[0]
+ 
+-    def _holds_no_downsample_lock(self, path):
+-        lock_file = NO_DOWNSAMPLE_LOCK.stat(follow_symlinks=False)
++    def _holds_no_downsample_lock(self, path, lock_path=NO_DOWNSAMPLE_LOCK):
++        lock_file = lock_path.stat(follow_symlinks=False)
+         if not S_ISREG(lock_file.st_mode):
+             return False
+         identity = lock_file.st_dev, lock_file.st_ino
+@@ -187,6 +195,109 @@
+                 or not self._holds_no_downsample_lock(process.path)):
+             return None
+         return NO_DOWNSAMPLE_ROOT, launch
++
++    def _strawberry_session_launch(self, process, children):
++        root = STRAWBERRY_ROOT
++        runner = root / 'session.py'
++        argv = process.argv
++        flags = argv[3:]
++        if (argv[:3] != [str(PYTHON_EXECUTABLE), '-B', str(runner)]
++                or not set(flags).issubset({'--no-rviz', '--web-map'})
++                or len(set(flags)) != len(flags)):
++            return None
++        python = PYTHON_EXECUTABLE.resolve(strict=True)
++        if runner.resolve(strict=True) != runner or (process.path / 'exe').resolve(strict=True) != python:
++            return None
++
++        rviz = '--no-rviz' not in flags
++        web_map = '--web-map' in flags
++        launch_flags = [f'start_rviz:={str(rviz).lower()}', f'publish_web_map:={str(web_map).lower()}']
++        launches = []
++        for child in children.get(process.path.name, ()):
++            command = child.argv
++            if (len(command) != 9 or child.started < process.started
++                    or not re.fullmatch(r'python3(?:\.\d+)?', Path(command[0]).name)
++                    or command[1:6] != [str(ROS2_ENTRY), 'launch', '--noninteractive',
++                                         'strawberry_octomap', 'mapping.launch.py']
++                    or not command[6].startswith('output_dir:=')
++                    or command[7:] != launch_flags
++                    or (child.path / 'exe').resolve(strict=True) != python):
++                continue
++            launches.append(child)
++        if len(launches) != 1:
++            return None
++
++        launch = launches[0]
++        output = Path(launch.argv[6].removeprefix('output_dir:='))
++        if (output.parent != root / 'outputs' or not re.fullmatch(r'[0-9a-f]{32}', output.name)
++                or launch.argv[6] != f'output_dir:={output}'
++                or not output.is_dir() or output.resolve(strict=True) != output
++                or (launch.path / 'cwd').resolve(strict=True) != output):
++            return None
++        for state_path in (output / 'session.json', root / 'runtime/session.json'):
++            if not S_ISREG(state_path.stat(follow_symlinks=False).st_mode):
++                return None
++            state = json.loads(self._read(state_path))
++            if (not isinstance(state, dict) or state.get('session') != str(output)
++                    or state.get('session_id') != output.name
++                    or state.get('status') != 'running' or state.get('phase') != 'mapping'
++                    or state.get('rviz') is not rviz or state.get('web_map') is not web_map
++                    or type(state.get('child_pid')) is not int or state['child_pid'] != int(launch.path.name)
++                    or type(state.get('child_starttime')) is not int or state['child_starttime'] != launch.started
++                    or type(state.get('supervisor_pid')) is not int or state['supervisor_pid'] != int(process.path.name)
++                    or type(state.get('supervisor_starttime')) is not int or state['supervisor_starttime'] != process.started):
++                return None
++        if (not self._holds_no_downsample_lock(process.path)
++                or not self._holds_no_downsample_lock(process.path, root / 'runtime/session.lock')):
++            return None
++        return root, launch
++
++    def _strawberry_node_processes(self, launch, children, names):
++        if any(names[name] != 1 for name in STRAWBERRY_EXECUTABLES):
++            return []
++        output = Path(launch.argv[6].removeprefix('output_dir:='))
++        python = PYTHON_EXECUTABLE.resolve(strict=True)
++        install = STRAWBERRY_ROOT / 'ws/install'
++        expected = {name: (install / file).resolve(strict=True)
++                    for name, file in STRAWBERRY_EXECUTABLES.items()}
++        if any(not path.is_relative_to(install) for path in expected.values()):
++            return []
++        required = (STRAWBERRY_TOKEN + output.name.encode(),
++                    f'ROS_DOMAIN_ID={os.environ.get("ROS_DOMAIN_ID", "0")}'.encode(),
++                    b'ROS_LOCALHOST_ONLY=1')
++        if not self._strawberry_environment(launch, required):
++            return []
++        matches = defaultdict(list)
++        # This launch starts every required node directly, without process prefixes.
++        for child in children.get(launch.path.name, ()):
++            if not child.argv or child.started < launch.started:
++                continue
++            try:
++                exe = (child.path / 'exe').resolve(strict=True)
++                if (child.path / 'cwd').resolve(strict=True) != output:
++                    continue
++                for name, target in expected.items():
++                    if target.suffix == '.py':
++                        matched = (exe == python and len(child.argv) > 1
++                                   and Path(child.argv[1]).resolve() == target)
++                    else:
++                        matched = exe == target
++                    namespace, _, node_name = name.rpartition('/')
++                    if (matched and f'__node:={node_name}' in child.argv
++                            and f'__ns:={namespace}' in child.argv
++                            and self._strawberry_environment(child, required)):
++                        matches[name].append(child)
++            except PROCESS_ERRORS:
++                continue
++        return [matches[name][0] for name in expected] if all(len(matches[name]) == 1 for name in expected) else []
++
++    def _strawberry_environment(self, process, required):
++        entries = self._read(process.path / 'environ', 131072).split(b'\0')
++        for value in required:
++            key = value.split(b'=', 1)[0] + b'='
++            if [entry for entry in entries if entry.startswith(key)] != [value]:
++                return False
++        return True
+ 
+     def _node_processes(self, launch, children, root, conflicts):
+         install = root / 'ws/install'
+@@ -226,7 +337,7 @@
+ 
+     def permits_rearm(self, conflicts, node_names):
+         conflicts = set(conflicts)
+-        if not conflicts or not conflicts.issubset(MANUAL_NODES):
++        if not conflicts or not conflicts.issubset(MANUAL_NODES | STRAWBERRY_EXECUTABLES.keys()):
+             return False
+         names = Counter('/' + (namespace.strip('/') + '/' + name).strip('/') for name, namespace in node_names)
+         if any(names[name] != 1 for name in conflicts):
+@@ -253,6 +364,8 @@
+                 launch = self._session_launch(process, children)
+                 if launch is None:
+                     launch = self._no_downsample_session_launch(process, children)
++                if launch is None:
++                    launch = self._strawberry_session_launch(process, children)
+                 if launch is not None:
+                     sessions.append((process, *launch))
+             except PROCESS_ERRORS:
+@@ -261,7 +374,16 @@
+             return False
+         supervisor, root, launch = sessions[0]
+         try:
+-            nodes = self._node_processes(launch, children, root, conflicts)
++            if root == STRAWBERRY_ROOT:
++                if not conflicts.issubset(STRAWBERRY_EXECUTABLES):
++                    return False
++                nodes = self._strawberry_node_processes(launch, children, names)
++                if self._strawberry_session_launch(supervisor, children) != (root, launch):
++                    return False
++            else:
++                if not conflicts.issubset(MANUAL_NODES):
++                    return False
++                nodes = self._node_processes(launch, children, root, conflicts)
+             if root == NO_DOWNSAMPLE_ROOT and nodes:
+                 token = self._no_downsample_owner_token(launch)
+                 if token is None or any(self._no_downsample_owner_token(node) != token for node in nodes):
